@@ -3,8 +3,8 @@ import os
 import numpy as np
 import svgwrite
 
-import backend.handwriting.utils.drawing_utils as drawing
-from backend.handwriting.models.rnn import rnn
+import utils.drawing_utils as drawing
+from models.rnn import rnn
 import lyrics
 
 
@@ -14,8 +14,8 @@ class Hand(object):
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         self.nn = rnn(
             log_dir='logs',
-            checkpoint_dir='../../checkpoints',
-            prediction_dir='predictions',
+            checkpoint_dir='handwriting/checkpoints',
+            prediction_dir='handwriting/predictions',
             learning_rates=[.0001, .00005, .00002],
             batch_sizes=[32, 64, 64],
             patiences=[1500, 1000, 500],
@@ -71,8 +71,8 @@ class Hand(object):
 
         if styles is not None:
             for i, (cs, style) in enumerate(zip(lines, styles)):
-                x_p = np.load('styles/style-{}-strokes.npy'.format(style))
-                c_p = np.load('styles/style-{}-chars.npy'.format(style)).tostring().decode('utf-8')
+                x_p = np.load('handwriting/styles/style-{}-strokes.npy'.format(style))
+                c_p = np.load('handwriting/styles/style-{}-chars.npy'.format(style)).tostring().decode('utf-8')
 
                 c_p = str(c_p) + " " + cs
                 c_p = drawing.encode_ascii(c_p)
@@ -106,6 +106,10 @@ class Hand(object):
         return samples
 
     def _draw(self, strokes, lines, filename, stroke_colors=None, stroke_widths=None):
+        directory = os.path.dirname(filename)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory)
+            
         stroke_colors = stroke_colors or ['black']*len(lines)
         stroke_widths = stroke_widths or [2]*len(lines)
 
@@ -163,7 +167,7 @@ if __name__ == '__main__':
     stroke_widths = [1, 2, 1, 2]
 
     hand.write(
-        filename='img/usage_demo.svg',
+        filename='output/usage_demo.svg',
         lines=lines,
         biases=biases,
         styles=styles,
@@ -177,7 +181,7 @@ if __name__ == '__main__':
     styles = [12 for i in lines]
 
     hand.write(
-        filename='img/all_star.svg',
+        filename='output/all_star.svg',
         lines=lines,
         biases=biases,
         styles=styles,
@@ -189,7 +193,7 @@ if __name__ == '__main__':
     styles = np.cumsum(np.array([len(i) for i in lines]) == 0).astype(int)
 
     hand.write(
-        filename='img/downtown.svg',
+        filename='output/downtown.svg',
         lines=lines,
         biases=biases,
         styles=styles,
@@ -201,7 +205,7 @@ if __name__ == '__main__':
     styles = [7 for i in lines]
 
     hand.write(
-        filename='img/give_up.svg',
+        filename='output/give_up.svg',
         lines=lines,
         biases=biases,
         styles=styles,

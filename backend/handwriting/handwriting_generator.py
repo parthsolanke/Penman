@@ -1,22 +1,20 @@
-import os
 import numpy as np
 import base64
 import svgwrite
 import logging
 import io
 
-from config import (
+from handwriting.config import (
     MODEL_CONFIG, 
     OUTPUT_CONFIG, 
-    OUTPUT_DIR,
     CHECKPOINT_DIR, 
     LOG_DIR, 
     PREDICTIONS_DIR, 
     setup_logging
 )
-import utils.drawing_utils as drawing
-from data.styles_loader import StylesLoader
-from models.rnn import rnn
+import handwriting.utils.drawing_utils as drawing
+from handwriting.data.styles_loader import StylesLoader
+from handwriting.models.rnn import rnn
 
 setup_logging(log_file=f"{LOG_DIR}/handwriting_generator.log")
 
@@ -160,56 +158,3 @@ class Hand(object):
     def _encode_svg_to_base64(self, svg_output):
         svg_base64 = base64.b64encode(svg_output.encode()).decode('utf-8')
         return f"data:image/svg+xml;base64,{svg_base64}"
-
-if __name__ == '__main__':
-    hand = Hand()
-    
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
-    logging.info("Testing Base64 SVG output...")
-    lines_base64 = [
-        "This is a test for Base64 SVG output",
-        "It should return a valid Base64-encoded SVG string",
-        "Make sure to embed it properly in HTML!"
-    ]
-    biases_base64 = [.75 for _ in lines_base64]
-    styles_base64 = [9 for _ in lines_base64]
-    stroke_colors_base64 = ['black'] * len(lines_base64)
-    stroke_widths_base64 = [1] * len(lines_base64)
-
-    try:
-        svg_base64_output = hand.write(
-            lines=lines_base64,
-            biases=biases_base64,
-            styles=styles_base64,
-            stroke_colors=stroke_colors_base64,
-            stroke_widths=stroke_widths_base64,
-            as_base64=True
-        )
-        logging.info("Base64 SVG output (truncated): %s", svg_base64_output[:100] + "...")
-
-        pdf_output = hand.write(
-            lines=lines_base64,
-            biases=biases_base64,
-            styles=styles_base64,
-            stroke_colors=stroke_colors_base64,
-            stroke_widths=stroke_widths_base64,
-            as_pdf=True
-        )
-        with open(f'{OUTPUT_DIR}/handwriting_output.pdf', 'wb') as f:
-            f.write(pdf_output.read())
-        logging.info("PDF file created and saved to 'output/handwriting_output.pdf'.")
-
-        svg_output = hand.write(
-            lines=lines_base64,
-            biases=biases_base64,
-            styles=styles_base64,
-            stroke_colors=stroke_colors_base64,
-            stroke_widths=stroke_widths_base64,
-        )
-        with open(f'{OUTPUT_DIR}/handwriting_output.svg', 'w') as f:
-            f.write(svg_output)
-        logging.info("SVG file created and saved to 'output/handwriting_output.svg'.")
-
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")

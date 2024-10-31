@@ -1,6 +1,6 @@
 import numpy as np
-import utils.drawing_utils as drawing
-from config import STYLES_DIR
+import handwriting.utils.drawing_utils as drawing
+from handwriting.config import STYLES_DIR
 
 class StylesLoader:
     def __init__(self, style_directory=STYLES_DIR):

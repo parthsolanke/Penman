@@ -4,12 +4,12 @@ import os
 import numpy as np
 import tensorflow as tf
 
-import utils.drawing_utils as drawing
-from data.data_loader import DataFrame
-from models.rnn_cell import LSTMAttentionCell
-from models.rnn_ops import rnn_free_run
-from models.tf_base_model import TFBaseModel
-from utils.tf_utils import time_distributed_dense_layer
+import handwriting.utils.drawing_utils as drawing
+from handwriting.data.data_loader import DataFrame
+from handwriting.models.rnn_cell import LSTMAttentionCell
+from handwriting.models.rnn_ops import rnn_free_run
+from handwriting.models.tf_base_model import TFBaseModel
+from handwriting.utils.tf_utils import time_distributed_dense_layer
 
 
 class DataReader(object):
@@ -204,32 +204,3 @@ class rnn(TFBaseModel):
             lambda: self.sample(cell)
         )
         return self.loss
-
-
-if __name__ == '__main__':
-    dr = DataReader(data_dir='data/processed/')
-
-    nn = rnn(
-        reader=dr,
-        log_dir='logs',
-        checkpoint_dir='checkpoints',
-        prediction_dir='predictions',
-        learning_rates=[.0001, .00005, .00002],
-        batch_sizes=[32, 64, 64],
-        patiences=[1500, 1000, 500],
-        beta1_decays=[.9, .9, .9],
-        validation_batch_size=32,
-        optimizer='rms',
-        num_training_steps=100000,
-        warm_start_init_step=0,
-        regularization_constant=0.0,
-        keep_prob=1.0,
-        enable_parameter_averaging=False,
-        min_steps_to_checkpoint=2000,
-        log_interval=20,
-        grad_clip=10,
-        lstm_size=400,
-        output_mixture_components=20,
-        attention_mixture_components=10
-    )
-    nn.fit()

@@ -3,7 +3,6 @@ import base64
 import svgwrite
 import logging
 import io
-
 from handwriting.config import (
     MODEL_CONFIG, 
     OUTPUT_CONFIG, 
@@ -32,6 +31,7 @@ class Hand(object):
         self.styles_loader = StylesLoader()
 
     def write(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
+        self.logger.debug(f"Received lines: {lines}, biases: {biases}, styles: {styles}")
         valid_char_set = set(drawing.alphabet)
         self._validate_input(lines, valid_char_set)
 
@@ -49,14 +49,15 @@ class Hand(object):
         return svg_output
 
     def _validate_input(self, lines, valid_char_set):
-        if lines is None:
-            raise ValueError("Lines cannot be None")
+        if lines is None or len(lines) == 0:
+            raise ValueError("Lines cannot be None or empty")
 
         for line_num, line in enumerate(lines):
             if len(line) > 75:
                 raise ValueError(f"Each line must be at most 75 characters. Line {line_num} contains {len(line)}")
             for char in line:
                 if char not in valid_char_set:
+                    self.logger.error(f"Invalid character '{char}' detected in line {line_num}. Valid character set is {valid_char_set}")
                     raise ValueError(f"Invalid character '{char}' detected in line {line_num}. Valid character set is {valid_char_set}")
 
     def _sample(self, lines, biases=None, styles=None):
@@ -84,19 +85,23 @@ class Hand(object):
                 chars[i, :len(encoded)] = encoded
                 chars_len[i] = len(encoded)
 
-        samples = self.nn.session.run(
-            [self.nn.sampled_sequence],
-            feed_dict={
-                self.nn.prime: styles is not None,
-                self.nn.x_prime: x_prime,
-                self.nn.x_prime_len: x_prime_len,
-                self.nn.num_samples: num_samples,
-                self.nn.sample_tsteps: max_tsteps,
-                self.nn.c: chars,
-                self.nn.c_len: chars_len,
-                self.nn.bias: biases
-            }
-        )[0]
+        try:
+            samples = self.nn.session.run(
+                [self.nn.sampled_sequence],
+                feed_dict={
+                    self.nn.prime: styles is not None,
+                    self.nn.x_prime: x_prime,
+                    self.nn.x_prime_len: x_prime_len,
+                    self.nn.num_samples: num_samples,
+                    self.nn.sample_tsteps: max_tsteps,
+                    self.nn.c: chars,
+                    self.nn.c_len: chars_len,
+                    self.nn.bias: biases
+                }
+            )[0]
+        except Exception as e:
+            self.logger.error(f"Error during sampling: {e}")
+            raise
 
         return [sample[~np.all(sample == 0.0, axis=1)] for sample in samples]
 

@@ -1,6 +1,7 @@
 import os
 import logging
 
+# Define base and subdirectories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HANDWRITING_DIR = os.path.join(BASE_DIR, "handwriting")
 CHECKPOINT_DIR = os.path.join(HANDWRITING_DIR, "checkpoints")
@@ -9,6 +10,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 PREDICTIONS_DIR = os.path.join(HANDWRITING_DIR, "predictions")
 
+# Model configuration
 MODEL_CONFIG = {
     "learning_rates": [0.0001, 0.00005, 0.00002],
     "batch_sizes": [32, 64, 64],
@@ -42,6 +44,11 @@ LOGGING_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 def setup_logging(log_file=None):
+    if log_file:
+        log_dir = os.path.dirname(log_file)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
     logging.basicConfig(
         level=LOGGING_LEVEL,
         format=LOGGING_FORMAT,
@@ -49,4 +56,3 @@ def setup_logging(log_file=None):
             logging.FileHandler(log_file) if log_file else logging.StreamHandler()
         ]
     )
-    

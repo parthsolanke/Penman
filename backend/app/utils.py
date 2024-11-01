@@ -5,12 +5,10 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 VALID_CHARACTERS = {
-    '1', 'J', 'u', ':', 'l', 't', 'g', 'R', 'P', 'Y', 'v', 'j', 'A', '!', 'G', 'K', 'y', '3', 'V', 'C', 'W',
-    'U', '7', 'c', '-', '"', 'N', '5', 'E', '(', 'I', 'L', 'r', '0', 'n', 'B', 'o', ')', 's', 'p',
-    '8', '4', ' ', '2', 'f', ',', '6', 'q', 'w', 'k', 'i', 'T', '.', 'O', 'a', 'F', '#', 'M', 'H', 'd', 'D',
-    'e', 'h', 'm', '9', 'S', "'", '?', 'z', 'x', 'b', ';',
-    *[chr(i) for i in range(ord('a'), ord('z') + 1)],
-    *[chr(i) for i in range(ord('A'), ord('Z') + 1)],
+    'T', 'Y', '\x00', '(', '-', 'L', 'e', 'B', 'j', 'x', 'y', '6', 'v', ' ', '"', 'g', 'l', 'p', 'z', 'c', '0',
+    '7', 'P', ':', 'o', 'I', '1', 'E', 'G', 'C', 'h', '#', 'F', 'W', 'N', '5', 'a', 'O', '9', 'H', '!', ')', 'J',
+    's', '4', ';', 'D', 'U', "'", ',', '.', 'V', 'f', '8', 'q', '?', 'i', 'K', 'b', 'R', 'd', 'k', 'n', 'r', 'A',
+    't', 'S', 'w', '2', 'M', '3', 'm', 'u'
 }
 
 def split_text_to_segments(text: str, segment_length: int = 75) -> List[str]:

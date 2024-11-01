@@ -1,6 +1,6 @@
 import logging
 import traceback
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 from handwriting.handwriting_generator import Hand
@@ -34,6 +34,9 @@ async def generate_detailed_handwriting(request: DetailedHandwritingRequest):
             svg_stream = BytesIO(output.encode('utf-8'))
             svg_stream.seek(0)
             return StreamingResponse(svg_stream, media_type="image/svg+xml")
+        
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.error(f"Internal Server Error: {e}")
@@ -69,6 +72,26 @@ async def generate_simple_handwriting(request: SimpleHandwritingRequest):
             svg_stream = BytesIO(output.encode('utf-8'))
             svg_stream.seek(0)
             return StreamingResponse(svg_stream, media_type="image/svg+xml")
+        
+    except HTTPException as http_exc:
+        raise http_exc
+
+    except Exception as e:
+        logger.error(f"Internal Server Error: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Internal server error.")
+    
+@router.post("/svg-to-pdf")
+async def convert_svg_to_pdf(file: UploadFile = File(...)):
+    try:
+        svg_content = await file.read()
+
+        pdf_output = hand._generate_pdf(svg_content.decode('utf-8'))
+
+        pdf_stream = BytesIO(pdf_output.read())
+        pdf_stream.seek(0)
+        headers = {"Content-Disposition": "attachment; filename=output.pdf"}
+        return StreamingResponse(pdf_stream, media_type="application/pdf", headers=headers)
 
     except Exception as e:
         logger.error(f"Internal Server Error: {e}")

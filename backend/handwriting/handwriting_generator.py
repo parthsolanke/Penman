@@ -3,6 +3,9 @@ import base64
 import svgwrite
 import logging
 import io
+import asyncio
+import cairosvg
+import functools
 from handwriting.config import (
     MODEL_CONFIG, 
     OUTPUT_CONFIG, 
@@ -30,7 +33,16 @@ class Hand(object):
         self.nn.restore()
         self.styles_loader = StylesLoader()
 
-    def write(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
+    async def write(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
+        """Async wrapper for write using run_in_executor"""
+        loop = asyncio._get_running_loop()
+        return await loop.run_in_executor(
+            None, functools.partial(
+                self._write_sync, lines, biases, styles, stroke_colors, stroke_widths, as_base64, as_pdf
+            )
+        )
+
+    def _write_sync(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
         self.logger.debug(f"Received lines: {lines}, biases: {biases}, styles: {styles}")
         valid_char_set = set(drawing.alphabet)
         self._validate_input(lines, valid_char_set)
@@ -39,7 +51,7 @@ class Hand(object):
         svg_output = self._draw(strokes, lines, stroke_colors=stroke_colors, stroke_widths=stroke_widths, as_base64=False)
 
         if as_pdf:
-            pdf_output = self._generate_pdf(svg_output)
+            pdf_output = self._generate_pdf_sync(svg_output)
             return pdf_output
 
         if as_base64:
@@ -147,9 +159,12 @@ class Hand(object):
 
         return dwg.tostring()
 
-    def _generate_pdf(self, svg_output):
-        import cairosvg
+    async def _generate_pdf(self, svg_output):
+        """Async wrapper for PDF generation using run_in_executor"""
+        loop = asyncio._get_running_loop()
+        return await loop.run_in_executor(None, functools.partial(self._generate_pdf_sync, svg_output))
 
+    def _generate_pdf_sync(self, svg_output):
         pdf_output = io.BytesIO()
         try:
             self.logger.info("Generating PDF output...")

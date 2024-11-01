@@ -16,7 +16,7 @@ async def generate_detailed_handwriting(request: DetailedHandwritingRequest):
     try:
         validate_characters(request.text_input)
 
-        output = hand.write(
+        output = await hand.write(
             lines=request.text_input,
             styles=request.styles,
             biases=request.biases,
@@ -54,7 +54,7 @@ async def generate_simple_handwriting(request: SimpleHandwritingRequest):
         stroke_widths = [request.stroke_width] * len(lines)
         stroke_colors = [request.stroke_color] * len(lines)
 
-        output = hand.write(
+        output = await hand.write(
             lines=lines,
             styles=styles,
             biases=biases,
@@ -86,7 +86,7 @@ async def convert_svg_to_pdf(file: UploadFile = File(...)):
     try:
         svg_content = await file.read()
 
-        pdf_output = hand._generate_pdf(svg_content.decode('utf-8'))
+        pdf_output = await hand._generate_pdf(svg_content.decode('utf-8'))
 
         pdf_stream = BytesIO(pdf_output.read())
         pdf_stream.seek(0)

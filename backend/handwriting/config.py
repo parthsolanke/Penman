@@ -1,7 +1,6 @@
 import os
 import logging
 
-# Define base and subdirectories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HANDWRITING_DIR = os.path.join(BASE_DIR, "handwriting")
 CHECKPOINT_DIR = os.path.join(HANDWRITING_DIR, "checkpoints")
@@ -10,7 +9,6 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 PREDICTIONS_DIR = os.path.join(HANDWRITING_DIR, "predictions")
 
-# Model configuration
 MODEL_CONFIG = {
     "learning_rates": [0.0001, 0.00005, 0.00002],
     "batch_sizes": [32, 64, 64],

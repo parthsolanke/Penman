@@ -3,7 +3,7 @@ import os
 import numpy as np
 import logging
 from handwriting.lyrics import all_star, downtown, give_up
-from handwriting.handwriting_generator import Hand
+from handwriting.generator import Hand
 from handwriting.config import setup_logging, OUTPUT_DIR, LOG_DIR
 
 setup_logging(log_file=f'{LOG_DIR}/inference_script_usage.log')

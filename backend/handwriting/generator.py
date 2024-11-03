@@ -41,14 +41,14 @@ class Hand(object):
                 self._write_sync, lines, biases, styles, stroke_colors, stroke_widths, as_base64, as_pdf
             )
         )
-
+                
     def _write_sync(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
         self.logger.debug(f"Received lines: {lines}, biases: {biases}, styles: {styles}")
         valid_char_set = set(drawing.alphabet)
         self._validate_input(lines, valid_char_set)
 
         strokes = self._sample(lines, biases=biases, styles=styles)
-        svg_output = self._draw(strokes, lines, stroke_colors=stroke_colors, stroke_widths=stroke_widths, as_base64=False)
+        svg_output = self._draw(strokes, lines, stroke_colors=stroke_colors, stroke_widths=stroke_widths)
 
         if as_pdf:
             pdf_output = self._generate_pdf_sync(svg_output)
@@ -117,7 +117,7 @@ class Hand(object):
 
         return [sample[~np.all(sample == 0.0, axis=1)] for sample in samples]
 
-    def _draw(self, strokes, lines, stroke_colors=None, stroke_widths=None, as_base64=False):
+    def _draw(self, strokes, lines, stroke_colors=None, stroke_widths=None):
         self.logger.info("Drawing SVG output...")
         
         stroke_colors = stroke_colors or ['black'] * len(lines)

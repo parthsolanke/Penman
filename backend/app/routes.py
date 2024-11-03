@@ -3,7 +3,7 @@ import traceback
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from io import BytesIO
-from handwriting.handwriting_generator import Hand
+from handwriting.generator import Hand
 from app.models import DetailedHandwritingRequest, SimpleHandwritingRequest
 from app.utils import split_text_to_segments, validate_characters
 

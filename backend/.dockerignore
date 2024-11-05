@@ -1,0 +1,10 @@
+logs/
+*.log
+output/
+.git/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.vscode/

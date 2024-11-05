@@ -28,3 +28,16 @@ class SimpleHandwritingRequest(BaseModel):
         if not v.strip():
             raise ValueError('text_input must not be empty or contain only whitespace')
         return v
+    
+class StreamHandwritingRequest(BaseModel):
+    text_input: str
+    style: conint(ge=0, le=12)
+    bias: confloat(ge=0.15, le=2.5)
+    stroke_width: conint(ge=1, le=5)
+    stroke_color: str
+
+    @validator('text_input')
+    def check_non_empty_text_input(cls, v):
+        if not v.strip():
+            raise ValueError('text_input must not be empty or contain only whitespace')
+        return v

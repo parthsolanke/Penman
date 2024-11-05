@@ -6,6 +6,9 @@ import io
 import asyncio
 import cairosvg
 import functools
+import traceback
+from typing import List, Dict, Optional, Any, AsyncGenerator
+
 from handwriting.config import (
     MODEL_CONFIG, 
     OUTPUT_CONFIG, 
@@ -36,11 +39,13 @@ class Hand(object):
     async def write(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
         """Async wrapper for write using run_in_executor"""
         loop = asyncio._get_running_loop()
-        return await loop.run_in_executor(
+        result = await loop.run_in_executor(
             None, functools.partial(
                 self._write_sync, lines, biases, styles, stroke_colors, stroke_widths, as_base64, as_pdf
             )
         )
+        await asyncio.sleep(0)
+        return result
                 
     def _write_sync(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
         self.logger.debug(f"Received lines: {lines}, biases: {biases}, styles: {styles}")
@@ -126,12 +131,20 @@ class Hand(object):
         line_height = OUTPUT_CONFIG["line_height"]
         view_width = OUTPUT_CONFIG["view_width"]
         view_height = line_height * (len(strokes) + 1)
-
+        
+        padding = 20
+        
         dwg = svgwrite.Drawing()
         dwg.viewbox(width=view_width, height=view_height)
-        dwg.add(dwg.rect(insert=(0, 0), size=(view_width, view_height), fill='white'))
+        
+        clip_path = dwg.defs.add(dwg.clipPath(id='clip-path'))
+        clip_path.add(dwg.rect((0, 0), (view_width, view_height)))
+        
+        group = dwg.g(clip_path='url(#clip-path)')
+        group.add(dwg.rect(insert=(0, 0), size=(view_width, view_height), fill='white'))
+        dwg.add(group)
 
-        initial_coord = np.array([0, -(3 * line_height / 4)])
+        initial_coord = np.array([padding, -(3 * line_height / 4)])
         for offsets, line, color, width in zip(strokes, lines, stroke_colors, stroke_widths):
             if not line:
                 initial_coord[1] -= line_height
@@ -143,26 +156,181 @@ class Hand(object):
             strokes[:, :2] = drawing.align(strokes[:, :2])
 
             strokes[:, 1] *= -1
-            strokes[:, :2] -= strokes[:, :2].min() + initial_coord
-            strokes[:, 0] += (view_width - strokes[:, 0].max()) / 2
+            
+            x_min, x_max = strokes[:, 0].min(), strokes[:, 0].max()
+            y_min, y_max = strokes[:, 1].min(), strokes[:, 1].max()
+            
+            available_width = view_width - 2 * padding
+            available_height = line_height - padding
+            
+            scale_x = available_width / (x_max - x_min) if x_max != x_min else 1
+            scale_y = available_height / (y_max - y_min) if y_max != y_min else 1
+            scale = min(scale_x, scale_y, 1.0)
+            
+            strokes[:, :2] *= scale
+            strokes[:, :2] -= np.array([x_min * scale, y_min * scale]) + initial_coord
+            
+            x_offset = (view_width - (strokes[:, 0].max() - strokes[:, 0].min())) / 2
+            strokes[:, 0] += x_offset - strokes[:, 0].min()
 
             path_data = "M{},{} ".format(0, 0)
             prev_eos = 1.0
             for x, y, eos in zip(*strokes.T):
+                x = max(padding, min(x, view_width - padding))
+                y = max(padding, min(y, view_height - padding))
                 path_data += '{}{},{} '.format('M' if prev_eos == 1.0 else 'L', x, y)
                 prev_eos = eos
 
             path = svgwrite.path.Path(path_data).stroke(color=color, width=width, linecap='round').fill("none")
-            dwg.add(path)
+            group.add(path)
 
             initial_coord[1] -= line_height
 
         return dwg.tostring()
+    
+    async def stream_write(
+        self, 
+        lines: List[str], 
+        biases: Optional[List[float]] = None, 
+        styles: Optional[List[str]] = None, 
+        stroke_colors: Optional[List[str]] = None, 
+        stroke_widths: Optional[List[float]] = None
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        
+        self.logger.info("Starting handwriting stream...")
+        
+        num_samples = len(lines)
+        biases = biases if biases is not None else [0.5] * num_samples
+        stroke_colors = stroke_colors or ['black'] * num_samples
+        stroke_widths = stroke_widths or [OUTPUT_CONFIG["default_stroke_width"]] * num_samples
+
+        line_height = OUTPUT_CONFIG["line_height"]
+        view_width = OUTPUT_CONFIG["view_width"]
+        view_height = line_height * (len(lines) + 1)
+        padding = 20
+        initial_coord = np.array([padding, -(3 * line_height / 4)])
+
+        setup_data = {
+            'type': 'setup',
+            'viewBox': f"0 0 {view_width} {view_height}",
+            'width': view_width,
+            'height': view_height
+        }
+        yield setup_data
+
+        try:
+            for line_idx, (line, bias, color, width) in enumerate(zip(lines, biases, stroke_colors, stroke_widths)):
+                if not line:
+                    initial_coord[1] -= line_height
+                    continue
+
+                x_prime = np.zeros([1, 1200, 3])
+                x_prime_len = np.zeros([1])
+                chars = np.zeros([1, 120])
+                chars_len = np.zeros([1])
+
+                if styles is not None:
+                    x_p, c_p = self.styles_loader.load_style(line, styles[line_idx])
+                    x_prime[0, :len(x_p), :] = x_p
+                    x_prime_len[0] = len(x_p)
+                    chars[0, :len(c_p)] = np.array(c_p)
+                    chars_len[0] = len(c_p)
+                else:
+                    encoded = drawing.encode_ascii(line)
+                    chars[0, :len(encoded)] = encoded
+                    chars_len[0] = len(encoded)
+
+                max_tsteps = 40 * len(line)
+
+                samples = await asyncio._get_running_loop().run_in_executor(
+                    None,
+                    functools.partial(
+                        self.nn.session.run,
+                        [self.nn.sampled_sequence],
+                        feed_dict={
+                            self.nn.prime: styles is not None,
+                            self.nn.x_prime: x_prime,
+                            self.nn.x_prime_len: x_prime_len,
+                            self.nn.num_samples: 1,
+                            self.nn.sample_tsteps: max_tsteps,
+                            self.nn.c: chars,
+                            self.nn.c_len: chars_len,
+                            self.nn.bias: [bias]
+                        }
+                    )
+                )
+                samples = samples[0]
+
+                all_strokes = samples[0][~np.all(samples[0] == 0.0, axis=1)]
+                
+                if len(all_strokes) == 0:
+                    continue
+
+                offsets = all_strokes.copy()
+                offsets[:, :2] *= 1.5
+                strokes = drawing.offsets_to_coords(offsets)
+                strokes = drawing.denoise(strokes)
+                strokes[:, :2] = drawing.align(strokes[:, :2])
+                strokes[:, 1] *= -1
+
+                x_min, x_max = strokes[:, 0].min(), strokes[:, 0].max()
+                y_min, y_max = strokes[:, 1].min(), strokes[:, 1].max()
+                
+                available_width = view_width - 2 * padding
+                available_height = line_height - padding
+                
+                scale_x = available_width / (x_max - x_min) if x_max != x_min else 1
+                scale_y = available_height / (y_max - y_min) if y_max != y_min else 1
+                scale = min(scale_x, scale_y, 1.0)
+                
+                strokes[:, :2] *= scale
+                strokes[:, :2] -= np.array([x_min * scale, y_min * scale]) + initial_coord
+                
+                x_offset = (view_width - (strokes[:, 0].max() - strokes[:, 0].min())) / 2
+                strokes[:, 0] += x_offset - strokes[:, 0].min()
+
+                eos_indices = np.where(all_strokes[:, 2] >= 0.95)[0]
+                current_path = "M{},{} ".format(0, 0)
+                prev_eos = 1.0
+                
+                for stroke_idx, (x, y, eos) in enumerate(zip(*strokes.T)):
+                    x = max(padding, min(x, view_width - padding))
+                    y = max(padding, min(y, view_height - padding))
+                    
+                    current_path += '{}{},{} '.format('M' if prev_eos == 1.0 else 'L', x, y)
+                    prev_eos = eos
+                    
+                    if eos >= 0.95 or stroke_idx in eos_indices:
+                        if current_path.strip() != "M0,0":
+                            path_data = {
+                                'type': 'path',
+                                'data': current_path,
+                                'color': color,
+                                'width': width,
+                                'lineNumber': line_idx
+                            }
+                            yield path_data
+                            await asyncio.sleep(0)
+                            
+                        current_path = "M{},{} ".format(0, 0)
+                        prev_eos = 1.0
+
+                initial_coord[1] -= line_height
+
+        except Exception as e:
+            self.logger.error(f"Error during real-time generation: {e}")
+            self.logger.error(traceback.format_exc())
+            yield {
+                'type': 'error',
+                'message': str(e)
+            }
 
     async def _generate_pdf(self, svg_output):
         """Async wrapper for PDF generation using run_in_executor"""
         loop = asyncio._get_running_loop()
-        return await loop.run_in_executor(None, functools.partial(self._generate_pdf_sync, svg_output))
+        result = await loop.run_in_executor(None, functools.partial(self._generate_pdf_sync, svg_output))
+        await asyncio.sleep(0)
+        return result
 
     def _generate_pdf_sync(self, svg_output):
         pdf_output = io.BytesIO()
@@ -175,6 +343,3 @@ class Hand(object):
             self.logger.error(f"Error generating PDF: {e}")
             raise
 
-    def _encode_svg_to_base64(self, svg_output):
-        svg_base64 = base64.b64encode(svg_output.encode()).decode('utf-8')
-        return f"data:image/svg+xml;base64,{svg_base64}"

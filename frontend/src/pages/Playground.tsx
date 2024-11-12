@@ -16,10 +16,23 @@ export default function Playground() {
     // Logic to generate svgPath from text
   }
 
-  const handleGenerateClick = () => {
+  const handleGenerateClick = async () => {
     setIsGenerating(true)
-    // Logic to generate svgPath
-    setIsGenerating(false)
+    
+    // Sample handwriting paths for demonstration
+    const samplePaths = [
+      'M 50 100 C 70 90, 90 110, 110 100 S 150 85, 170 100',  // wave-like curve
+      'M 200 100 Q 225 50, 250 100 T 300 100',                // connected curves
+      'M 320 80 L 340 120 L 360 80 M 380 80 L 380 120',      // zig-zag pattern
+    ];
+
+    // Simulate gradual path generation
+    for (let path of samplePaths) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setSvgPath(prev => prev + ' ' + path);
+    }
+
+    setIsGenerating(false);
   }
 
   return (
@@ -48,7 +61,7 @@ export default function Playground() {
               isGenerating={isGenerating} 
             />
             <div ref={previewRef} className="h-full">
-              <HandwritingPreview svgPath={svgPath} />
+              <HandwritingPreview svgPath={svgPath} onClear={() => setSvgPath("")}  />
             </div>
           </div>
         </div>

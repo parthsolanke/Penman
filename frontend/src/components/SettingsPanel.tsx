@@ -139,19 +139,3 @@ export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
     </div>
   )
 }
-
-
-// For the font previews, I've used placeholder images. In a real application, you would want to replace these with actual font previews. You could generate these previews using a canvas or by using pre-generated images for each font. Here's how you might generate a font preview using a canvas:
-
-//  function FontPreview({ font, text }) {function FontPreview({ font, text }) {
-//   const canvasRef = useRef(null)
-
-//   useEffect(() => {
-//     const canvas = canvasRef.current
-//     const ctx = canvas.getContext('2d')
-//     ctx.font = `16px ${font}`
-//     ctx.fillText(text, 10, 20)
-//   }, [font, text])
-
-//   return <canvas ref={canvasRef} width={100} height={30} />
-// }

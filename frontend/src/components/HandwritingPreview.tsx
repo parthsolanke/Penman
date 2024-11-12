@@ -6,9 +6,12 @@ interface HandwritingPreviewProps {
 
 export default function HandwritingPreview({ svgPath, width = 300, height = 200 }: HandwritingPreviewProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border h-full transition-shadow hover:shadow-md">
+    <div className="bg-card rounded-lg border shadow-sm h-full transition-shadow hover:shadow-md">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold">Preview</h2>
+      </div>
       <div 
-        className="rounded-md h-full"
+        className="p-6 h-[calc(100%-60px)]"
         style={{
           backgroundImage: `
             linear-gradient(#e5e7eb 1px, transparent 1px),
@@ -18,7 +21,6 @@ export default function HandwritingPreview({ svgPath, width = 300, height = 200 
           `,
           backgroundSize: '20px 20px, 20px 20px, 10px 10px, 10px 10px',
           backgroundColor: '#ffffff',
-          border: '1px solid #e5e7eb',
         }}
       >
         <svg 

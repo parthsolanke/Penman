@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Pencil } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 interface GenerateButtonProps {
   onClick: () => void
@@ -17,8 +17,8 @@ export default function GenerateButton({ onClick, isGenerating }: GenerateButton
         <>Generating...</>
       ) : (
         <>
-          Generate Handwriting
-          <Pencil className="ml-2 h-4 w-4" />
+          Generate
+          <Sparkles />
         </>
       )}
     </Button>

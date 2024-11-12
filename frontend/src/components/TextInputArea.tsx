@@ -18,14 +18,17 @@ export default function TextInputArea({ onTextChange, onGenerateClick, isGenerat
   }
 
   return (
-    <div className="w-full h-full space-y-4">
-      <div className="relative h-full bg-white rounded-lg shadow-sm border transition-shadow hover:shadow-md">
+    <div className="bg-card rounded-lg border shadow-sm h-full transition-shadow hover:shadow-md">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold">Enter Text</h2>
+      </div>
+      <div className="relative h-[calc(100%-60px)]">
         <Textarea
           id="text-input"
           placeholder="Start typing your text here..."
           value={text}
           onChange={handleTextChange}
-          className="min-h-[200px] h-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg"
+          className="min-h-full h-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
         />
         <div className="absolute bottom-4 right-4">
           <GenerateButton 

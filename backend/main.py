@@ -22,20 +22,12 @@ else:
     allow_methods = os.getenv("DEV_ALLOWED_METHODS").split(",")
     allow_headers = os.getenv("DEV_ALLOWED_HEADERS").split(",")
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=allow_origins,
-#     allow_credentials=True,
-#     allow_methods=allow_methods,
-#     allow_headers=allow_headers,
-# )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=allow_methods,
+    allow_headers=allow_headers,
 )
 
 app.include_router(handwriting_router, prefix="/handwriting")

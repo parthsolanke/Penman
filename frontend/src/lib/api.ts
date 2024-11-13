@@ -14,7 +14,6 @@ export async function streamHandwriting(
   signal?: AbortSignal
 ) {
   try {
-    console.log(import.meta.env.VITE_API_BASE_URL);
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/handwriting/generate-stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

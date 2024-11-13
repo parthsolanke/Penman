@@ -14,7 +14,7 @@ export async function streamHandwriting(
   signal?: AbortSignal
 ) {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/handwriting/generate-stream`, {
+    const response = await fetch(`http://discerning-intuition-production.up.railway.app/handwriting/generate-stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),

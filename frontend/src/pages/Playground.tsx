@@ -1,42 +1,106 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Pen } from 'lucide-react'
+import { Pen, Timer, Activity, Clock } from 'lucide-react'
 import TextInputArea from '../components/TextInputArea'
 import HandwritingPreview from '../components/HandwritingPreview'
-import SettingsPanel from '../components/SettingsPanel' // Import SettingsPanel
+import SettingsPanel from '../components/SettingsPanel'
+import { streamHandwriting } from '@/lib/api'
+import { useSettings } from '@/contexts/SettingsContext'
+import { fonts } from '@/lib/constants'
 
 export default function Playground() {
   const [text, setText] = useState('')
   const [svgPath, setSvgPath] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [viewBox, setViewBox] = useState<string>()
   const previewRef = useRef<HTMLDivElement>(null)
+  const abortController = useRef<AbortController>()
+  const [dimensions, setDimensions] = useState({ width: 300, height: 200 });
+  const [stats, setStats] = useState({
+    elapsedTime: 0,
+    currentSpeed: 0,
+    averageSpeed: 0,
+    strokeCount: 0
+  })
 
-  const handleTextChange = (newText: string) => {
+  const { font, legibility, strokeWidth, strokeColor } = useSettings()
+
+  const handleTextChange = useCallback((newText: string) => {
     setText(newText)
-    // Logic to generate svgPath from text
-  }
+  }, [])
 
-  const handleGenerateClick = async () => {
-    setIsGenerating(true)
-    
-    // Sample handwriting paths for demonstration
-    const samplePaths = [
-      'M 50 100 C 70 90, 90 110, 110 100 S 150 85, 170 100',  // wave-like curve
-      'M 200 100 Q 225 50, 250 100 T 300 100',                // connected curves
-      'M 320 80 L 340 120 L 360 80 M 380 80 L 380 120',      // zig-zag pattern
-    ];
+  const updateStats = useCallback((newStats: Partial<typeof stats>) => {
+    setStats(prev => ({ ...prev, ...newStats }))
+  }, [])
 
-    // Simulate gradual path generation
-    for (let path of samplePaths) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setSvgPath(prev => prev + ' ' + path);
+  const handleGenerateClick = useCallback(async () => {
+    if (!text.trim()) return;
+
+    if (isGenerating) {
+      abortController.current?.abort()
+      setIsGenerating(false)
+      return
     }
 
+    setIsGenerating(true)
+    setSvgPath('')
+    abortController.current = new AbortController()
+
+    const config = {
+      text_input: text,
+      style: fonts.indexOf(font),
+      bias: legibility,
+      stroke_width: strokeWidth,
+      stroke_color: strokeColor
+    }
+
+    let startTime = Date.now()
+    let strokeCount = 0
+
+    try {
+      await streamHandwriting(
+        config,
+        (data) => {
+          setViewBox(data.viewBox);
+          setDimensions({
+            width: data.width || 300,
+            height: data.height || 200
+          });
+          startTime = Date.now()
+        },
+        (data) => {
+          strokeCount++
+          const elapsed = (Date.now() - startTime) / 1000
+          updateStats({
+            elapsedTime: elapsed,
+            strokeCount,
+            currentSpeed: strokeCount / elapsed,
+            averageSpeed: strokeCount / elapsed
+          })
+          setSvgPath(prev => prev + ' ' + data.data)
+        },
+        (error) => console.error(error),
+        abortController.current.signal
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [text, font, legibility, strokeWidth, strokeColor, updateStats])
+
+  const handleAbort = useCallback(() => {
+    abortController.current?.abort();
     setIsGenerating(false);
-  }
+  }, []);
+
+  const handleClear = useCallback(() => {
+    handleAbort();
+    setSvgPath('');
+    setViewBox(undefined);
+    setDimensions({ width: 300, height: 200 });
+  }, [handleAbort]);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="px-4 lg:px-6 h-14 flex items-center border-b bg-background">
         <Link className="flex items-center justify-center gap-2" to="/">
           <Pen className="h-6 w-6" />
@@ -53,18 +117,67 @@ export default function Playground() {
       </header>
       <div className="flex-1 flex flex-col">
         <SettingsPanel previewRef={previewRef} />
+        
+        {/* Stats Panel */}
+        <div className="bg-white border-b">
+          <div className="container mx-auto px-4 py-2">
+            <div className="flex justify-center gap-8">
+              <StatsBox
+                icon={<Clock className="w-4 h-4" />}
+                label="Time"
+                value={`${stats.elapsedTime.toFixed(1)}s`}
+              />
+              <StatsBox
+                icon={<Activity className="w-4 h-4" />}
+                label="Current Speed"
+                value={`${stats.currentSpeed.toFixed(1)} strokes/s`}
+              />
+              <StatsBox
+                icon={<Timer className="w-4 h-4" />}
+                label="Average Speed"
+                value={`${stats.averageSpeed.toFixed(1)} strokes/s`}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="flex-1 container mx-auto p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ height: 'calc(100vh - 280px)' }}>
             <TextInputArea 
+              text={text}
               onTextChange={handleTextChange} 
               onGenerateClick={handleGenerateClick} 
               isGenerating={isGenerating} 
             />
             <div ref={previewRef} className="h-full">
-              <HandwritingPreview svgPath={svgPath} onClear={() => setSvgPath("")}  />
+              <HandwritingPreview 
+                svgPath={svgPath} 
+                onClear={handleClear}
+                onAbort={handleAbort}
+                viewBox={viewBox}
+                width={dimensions.width}
+                height={dimensions.height}
+                isGenerating={isGenerating}
+                strokeWidth={strokeWidth}
+                strokeColor={strokeColor}
+              />
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function StatsBox({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="p-2 rounded-full bg-gray-100">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm text-gray-500">{label}</p>
+        <p className="font-medium">{value}</p>
       </div>
     </div>
   )

@@ -3,20 +3,23 @@ import { Textarea } from "@/components/ui/textarea"
 import GenerateButton from './GenerateButton'
 
 const VALID_CHARACTERS = new Set([
-  'T', 'Y', '\x00', '(', '-', 'L', 'e', 'B', 'j', 'x', 'y', '6', 'v', ' ', '"', 'g', 'l', 'p', 'z', 'c', '0',
-  '7', 'P', ':', 'o', 'I', '1', 'E', 'G', 'C', 'h', '#', 'F', 'W', 'N', '5', 'a', 'O', '9', 'H', '!', ')', 'J',
-  's', '4', ';', 'D', 'U', "'", ',', '.', 'V', 'f', '8', 'q', '?', 'i', 'K', 'b', 'R', 'd', 'k', 'n', 'r', 'A',
-  't', 'S', 'w', '2', 'M', '3', 'm', 'u'
+  '\x00', ' ', '!', '"', '#', "'", '(', ')', ',', '-', '.',
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';',
+  '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+  'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'V', 'W', 'Y',
+  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+  'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+  'y', 'z'
 ])
 
 interface TextInputAreaProps {
+  text: string
   onTextChange: (text: string) => void
   onGenerateClick: () => void
   isGenerating: boolean
 }
 
-export default function TextInputArea({ onTextChange, onGenerateClick, isGenerating }: TextInputAreaProps) {
-  const [text, setText] = useState('')
+export default function TextInputArea({ text, onTextChange, onGenerateClick, isGenerating }: TextInputAreaProps) {
   const [invalidChars, setInvalidChars] = useState<{char: string, index: number}[]>([])
 
   const validateText = (input: string) => {
@@ -31,38 +34,56 @@ export default function TextInputArea({ onTextChange, onGenerateClick, isGenerat
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
-    setText(newText)
-    onTextChange(newText)
     const invalid = validateText(newText)
     setInvalidChars(invalid)
+    onTextChange(newText)
   }
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm h-full transition-shadow hover:shadow-md">
-      <div className="p-4 border-b">
-        <h2 className="font-semibold">Enter Text</h2>
+    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
+      <div className="p-4 border-b flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-base">Enter Text</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Type or paste your text here</p>
+        </div>
+        <div className="text-sm text-gray-500">
+          {text.length} characters
+        </div>
+      </div>
+      
+      <div className="flex-1 flex flex-col">
         {invalidChars.length > 0 && (
-          <div className="mt-2 text-sm text-red-500">
-            Warning: Invalid characters found: {invalidChars.map(({char}, i) => 
-              <span key={i} className="font-mono bg-red-100 px-1 rounded">{char}</span>
-            )}
+          <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
+            <p className="font-medium flex items-center gap-2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12" y2="16"/>
+              </svg>
+              Invalid characters detected
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {invalidChars.map(({char}, i) => 
+                <span key={i} className="font-mono bg-red-100 px-2 py-0.5 rounded">
+                  {char}
+                </span>
+              )}
+            </div>
           </div>
         )}
-      </div>
-      <div className="relative h-[calc(100%-60px)]">
+
         <Textarea
           id="text-input"
-          placeholder="Start typing your text here..."
           value={text}
           onChange={handleTextChange}
-          className={`min-h-full h-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none ${
-            invalidChars.length > 0 ? 'border-red-500' : ''
-          }`}
+          className={`flex-1 resize-none p-4 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-lg bg-transparent
+            ${invalidChars.length > 0 ? 'border-red-500' : ''}`}
         />
-        <div className="absolute bottom-4 right-4">
+
+        <div className="p-4 border-t bg-gray-50 rounded-b-lg">
           <GenerateButton 
             onClick={onGenerateClick} 
-            isGenerating={isGenerating} 
+            isGenerating={isGenerating}
           />
         </div>
       </div>

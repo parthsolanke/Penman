@@ -11,7 +11,7 @@ export default function GenerateButton({ onClick, isGenerating }: GenerateButton
     <Button
       onClick={onClick}
       disabled={isGenerating}
-      className="w-full max-w-md"
+      className="w-full sm:w-auto" 
     >
       {isGenerating ? (
         <>Generating...</>

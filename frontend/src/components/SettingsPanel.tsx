@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -13,15 +12,16 @@ import { Button } from "@/components/ui/button"
 import { Check, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import ExportButton from './ExportButton'
+import { useSettings } from '@/contexts/SettingsContext'
 
 const fonts = [
-  "Arial", "Helvetica", "Times New Roman", "Courier", "Verdana",
-  "Georgia", "Palatino", "Garamond", "Bookman", "Comic Sans MS",
-  "Trebuchet MS", "Arial Black", "Impact"
+  "Fantasia", "Grotesque", "Nova", "Sansara", "Mirage",
+  "Cascade", "Shadow", "Pixel", "Harmony", "Classic",
+  "Revival", "Minimal", "Vibes"
 ]
 
 const colors = [
-  "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
+  "#000000", "#FFA500", "#FF0000", "#00FF00", "#0000FF",
   "#FFFF00", "#00FFFF", "#FF00FF", "#C0C0C0", "#808080",
   "#800000", "#808000", "#008000", "#800080", "#008080", "#000080"
 ]
@@ -31,10 +31,16 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
-  const [font, setFont] = useState(fonts[0])
-  const [legibility, setLegibility] = useState(50)
-  const [strokeWidth, setStrokeWidth] = useState(1)
-  const [strokeColor, setStrokeColor] = useState(colors[0])
+  const {
+    font,
+    legibility,
+    strokeWidth,
+    strokeColor,
+    setFont,
+    setLegibility,
+    setStrokeWidth,
+    setStrokeColor
+  } = useSettings()
 
   return (
     <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -64,9 +70,9 @@ export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
                       onClick={() => setFont(f)}
                     >
                       <img
-                        src={`/placeholder.svg?height=30&width=100&text=${f}`}
-                        alt={`${f} preview`}
-                        className="mr-2 h-5 w-20 object-cover"
+                        src={`/fonts/${f.toLowerCase()}.svg`}
+                        alt={`${f}`}
+                        className="mr-2 h-5 w-20 object-contain"
                       />
                       {f === font && <Check className="ml-auto h-4 w-4" />}
                     </Button>
@@ -82,9 +88,9 @@ export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
                 <Slider
                   id="legibility-slider"
                   className="py-0.5"
-                  min={0}
-                  max={100}
-                  step={1}
+                  min={0.15}
+                  max={2.5}
+                  step={0.05}
                   value={[legibility]}
                   onValueChange={(value: number[]) => setLegibility(value[0])}
                 />
@@ -94,7 +100,7 @@ export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
                 <Slider
                   id="stroke-width-slider"
                   className="py-0.5"
-                  min={0.5}
+                  min={1}
                   max={5}
                   step={0.1}
                   value={[strokeWidth]}

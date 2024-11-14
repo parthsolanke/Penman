@@ -13,53 +13,86 @@ export async function streamHandwriting(
   onError: (error: string) => void,
   signal?: AbortSignal
 ) {
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  const BASE_DELAY = 25;
+  
+  const getStrokeDelay = (pathData: any) => {
+    if (pathData.length) {
+      return Math.max(BASE_DELAY * (pathData.length / 100), 30);
+    }
+    return BASE_DELAY;
+  };
+  
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/handwriting/generate-stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
-      signal
+      signal: signal || controller.signal
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    clearTimeout(timeout);
+
+    if (!response.body) {
+      throw new Error('ReadableStream not supported');
     }
 
-    const reader = response.body!.getReader();
+    reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     let initialized = false;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (line.startsWith('data: ')) {
-          const data = JSON.parse(line.slice(6));
-          switch (data.type) {
-            case 'setup':
-              if (!initialized) {
-                onSetup(data);
-                initialized = true;
-              }
-              break;
-            case 'path':
-              await new Promise(resolve => setTimeout(resolve, 60));
-              onPath(data);
-              break;
-            case 'error':
-              onError(data.message);
-              break;
+          try {
+            const data = JSON.parse(line.slice(6));
+            switch (data.type) {
+              case 'setup':
+                if (!initialized) {
+                  onSetup(data);
+                  initialized = true;
+                }
+                break;
+              case 'path':
+                const delay = getStrokeDelay(data);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                onPath(data);
+                break;
+              case 'error':
+                onError(data.message);
+                break;
+            }
+          } catch (parseError) {
+            onError('Failed to parse server data');
           }
         }
       }
     }
   } catch (error) {
-    if (error instanceof Error) {
+    if ((error as Error).name === 'AbortError') {
+      onError('Request timed out');
+    } else if (error instanceof Error) {
       onError(error.message);
+    }
+  } finally {
+    if (reader) {
+      try {
+        await reader.cancel();
+      } catch (e) {
+        console.error('Error closing reader:', e);
+      }
     }
   }
 }

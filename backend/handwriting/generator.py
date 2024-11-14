@@ -8,6 +8,7 @@ import cairosvg
 import functools
 import traceback
 from typing import List, Dict, Optional, Any, AsyncGenerator
+from functools import lru_cache
 
 from handwriting.config import (
     MODEL_CONFIG, 
@@ -35,6 +36,7 @@ class Hand(object):
         )
         self.nn.restore()
         self.styles_loader = StylesLoader()
+        self._stroke_cache = {} 
 
     async def write(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
         """Async wrapper for write using run_in_executor"""
@@ -292,7 +294,7 @@ class Hand(object):
                 eos_indices = np.where(all_strokes[:, 2] >= 0.95)[0]
                 current_path = "M{},{} ".format(0, 0)
                 prev_eos = 1.0
-                
+
                 for stroke_idx, (x, y, eos) in enumerate(zip(*strokes.T)):
                     x = max(padding, min(x, view_width - padding))
                     y = max(padding, min(y, view_height - padding))
@@ -300,18 +302,18 @@ class Hand(object):
                     current_path += '{}{},{} '.format('M' if prev_eos == 1.0 else 'L', x, y)
                     prev_eos = eos
                     
-                    if eos >= 0.95 or stroke_idx in eos_indices:
-                        if current_path.strip() != "M0,0":
-                            path_data = {
-                                'type': 'path',
-                                'data': current_path,
-                                'color': color,
-                                'width': width,
-                                'lineNumber': line_idx
-                            }
-                            yield path_data
-                            await asyncio.sleep(0)
-                            
+                    should_yield = (eos >= 0.95 or stroke_idx in eos_indices or stroke_idx == len(strokes) - 1)
+                    
+                    if should_yield and current_path.strip() != "M0,0":
+                        path_data = {
+                            'type': 'path',
+                            'data': current_path,
+                            'color': color,
+                            'width': width,
+                            'lineNumber': line_idx
+                        }
+                        yield path_data
+                        await asyncio.sleep(0)
                         current_path = "M{},{} ".format(0, 0)
                         prev_eos = 1.0
 
@@ -324,6 +326,39 @@ class Hand(object):
                 'type': 'error',
                 'message': str(e)
             }
+
+    @lru_cache(maxsize=128)
+    def _process_line(self, line: str, style: Optional[str] = None):
+        """Cache frequently processed lines with their styles"""
+        chars = np.zeros([1, 120])
+        chars_len = np.zeros([1])
+        
+        if style is not None:
+            x_p, c_p = self.styles_loader.load_style(line, style)
+            return x_p, c_p
+        else:
+            encoded = drawing.encode_ascii(line)
+            return encoded
+
+    def _optimize_strokes(self, strokes: np.ndarray, tolerance: float = 0.01) -> np.ndarray:
+        """Optimize stroke data by removing redundant points"""
+        if len(strokes) < 3:
+            return strokes
+            
+        optimized = [strokes[0]]
+        for i in range(1, len(strokes) - 1):
+            curr_point = strokes[i]
+            prev_point = strokes[i - 1]
+            next_point = strokes[i + 1]
+            
+            # Calculate point significance
+            v1 = curr_point[:2] - prev_point[:2]
+            v2 = next_point[:2] - curr_point[:2]
+            if np.abs(np.cross(v1, v2)) > tolerance or curr_point[2] >= 0.95:
+                optimized.append(curr_point)
+                
+        optimized.append(strokes[-1])
+        return np.array(optimized)
 
     async def _generate_pdf(self, svg_output):
         """Async wrapper for PDF generation using run_in_executor"""
@@ -342,4 +377,9 @@ class Hand(object):
         except Exception as e:
             self.logger.error(f"Error generating PDF: {e}")
             raise
+
+    def __del__(self):
+        """Cleanup method to clear caches"""
+        self._stroke_cache.clear()
+        self._process_line.cache_clear()
 

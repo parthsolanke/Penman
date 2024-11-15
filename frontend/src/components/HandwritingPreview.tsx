@@ -35,8 +35,8 @@ export default function HandwritingPreview({
   }, [svgPath]);
 
   const handleClear = () => {
-    onAbort?.(); // Call abort first to stop streaming
-    onClear?.(); // Then clear the preview
+    onAbort?.();
+    onClear?.();
   };
 
   return (
@@ -48,7 +48,7 @@ export default function HandwritingPreview({
         </div>
         <div className="flex items-center gap-1.5">
           <button 
-            onClick={() => setScale(s => Math.max(0.5, s - 0.1))}
+            onClick={() => setScale(s => Math.max(1, s - 0.1))}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Zoom out"
           >
@@ -58,7 +58,7 @@ export default function HandwritingPreview({
             <span className="text-sm font-medium">{(scale * 100).toFixed(0)}%</span>
           </div>
           <button 
-            onClick={() => setScale(s => Math.min(2, s + 0.1))}
+            onClick={() => setScale(s => Math.min(3, s + 0.1))}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Zoom in"
           >

@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import {
@@ -108,21 +106,3 @@ export default function ExportButton({ targetRef, filename = 'export' }: ExportB
     </DropdownMenu>
   )
 }
-
-// Then, you can use the `ExportButton` component in your React application like this:
-
-// import { useRef } from 'react'
-// import ExportButton from './ExportButton'
-
-// export default function YourComponent() {
-//   const contentRef = useRef<HTMLDivElement>(null)
-
-//   return (
-//     <div>
-//       <div ref={contentRef}>
-//         {/* Your content to be exported goes here */}
-//       </div>
-//       <ExportButton targetRef={contentRef} filename="my-export" />
-//     </div>
-//   )
-// }

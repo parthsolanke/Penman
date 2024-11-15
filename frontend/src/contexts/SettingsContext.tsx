@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState } from 'react'
 
 interface SettingsContextType {
@@ -16,8 +15,8 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [font, setFont] = useState('Fantasia')
-  const [legibility, setLegibility] = useState(0.85)
-  const [strokeWidth, setStrokeWidth] = useState(1.5)
+  const [legibility, setLegibility] = useState(1)
+  const [strokeWidth, setStrokeWidth] = useState(2)
   const [strokeColor, setStrokeColor] = useState('#000000')
 
   return (

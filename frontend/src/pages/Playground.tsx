@@ -1,9 +1,9 @@
-import { useRef, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
-import { Pen, Timer, Activity, Clock } from 'lucide-react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import TextInputArea from '../components/TextInputArea'
 import HandwritingPreview from '../components/HandwritingPreview'
 import SettingsPanel from '../components/SettingsPanel'
+import StatsPanel from '../components/StatsPanel'
+import Header from '../components/Header'
 import { streamHandwriting } from '@/lib/api'
 import { useSettings } from '@/contexts/SettingsContext'
 import { fonts } from '@/lib/constants'
@@ -22,6 +22,8 @@ export default function Playground() {
     averageSpeed: 0,
     strokeCount: 0
   })
+  const animationFrameRef = useRef<number>()
+  const generationStartTime = useRef<number>()
 
   const { font, legibility, strokeWidth, strokeColor } = useSettings()
 
@@ -29,9 +31,44 @@ export default function Playground() {
     setText(newText)
   }, [])
 
-  const updateStats = useCallback((newStats: Partial<typeof stats>) => {
-    setStats(prev => ({ ...prev, ...newStats }))
+  const resetStats = useCallback(() => {
+    setStats({
+      elapsedTime: 0,
+      currentSpeed: 0,
+      averageSpeed: 0,
+      strokeCount: 0
+    })
   }, [])
+
+  const updateStatsLoop = useCallback(() => {
+    if (!generationStartTime.current) return
+
+    const elapsed = (Date.now() - generationStartTime.current) / 1000
+    setStats(prev => ({
+      ...prev,
+      elapsedTime: elapsed,
+      currentSpeed: prev.strokeCount / elapsed,
+      averageSpeed: prev.strokeCount / elapsed
+    }))
+  }, [])
+
+  useEffect(() => {
+    let frameId: number
+    
+    if (isGenerating) {
+      const tick = () => {
+        updateStatsLoop()
+        frameId = requestAnimationFrame(tick)
+      }
+      frameId = requestAnimationFrame(tick)
+    }
+
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId)
+      }
+    }
+  }, [isGenerating, updateStatsLoop])
 
   const handleGenerateClick = useCallback(async () => {
     if (!text.trim()) return;
@@ -44,7 +81,9 @@ export default function Playground() {
 
     setIsGenerating(true)
     setSvgPath('')
+    resetStats()
     abortController.current = new AbortController()
+    generationStartTime.current = Date.now()
 
     const config = {
       text_input: text,
@@ -53,9 +92,6 @@ export default function Playground() {
       stroke_width: strokeWidth,
       stroke_color: strokeColor
     }
-
-    let startTime = Date.now()
-    let strokeCount = 0
 
     try {
       await streamHandwriting(
@@ -66,17 +102,12 @@ export default function Playground() {
             width: data.width || 300,
             height: data.height || 200
           });
-          startTime = Date.now()
         },
         (data) => {
-          strokeCount++
-          const elapsed = (Date.now() - startTime) / 1000
-          updateStats({
-            elapsedTime: elapsed,
-            strokeCount,
-            currentSpeed: strokeCount / elapsed,
-            averageSpeed: strokeCount / elapsed
-          })
+          setStats(prev => ({
+            ...prev,
+            strokeCount: prev.strokeCount + 1
+          }))
           setSvgPath(prev => prev + ' ' + data.data)
         },
         (error) => console.error(error),
@@ -84,13 +115,16 @@ export default function Playground() {
       );
     } finally {
       setIsGenerating(false);
+      generationStartTime.current = undefined;
     }
-  }, [text, font, legibility, strokeWidth, strokeColor, updateStats])
+  }, [text, font, legibility, strokeWidth, strokeColor, isGenerating, resetStats])
 
   const handleAbort = useCallback(() => {
     abortController.current?.abort();
     setIsGenerating(false);
-  }, []);
+    cancelAnimationFrame(animationFrameRef.current!)
+    resetStats()
+  }, [resetStats]);
 
   const handleClear = useCallback(() => {
     handleAbort();
@@ -101,46 +135,10 @@ export default function Playground() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="px-4 lg:px-6 h-14 flex items-center border-b bg-background">
-        <Link className="flex items-center justify-center gap-2" to="/">
-          <Pen className="h-6 w-6" />
-          <span className="font-bold text-2xl">Penman</span>
-        </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link className="text-sm font-medium hover:underline underline-offset-4" to="/">
-            Home
-          </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" to="/cards">
-            Cards
-          </Link>
-        </nav>
-      </header>
+      <Header />
       <div className="flex-1 flex flex-col">
         <SettingsPanel previewRef={previewRef} />
-        
-        {/* Stats Panel */}
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4 py-2">
-            <div className="flex justify-center gap-8">
-              <StatsBox
-                icon={<Clock className="w-4 h-4" />}
-                label="Time"
-                value={`${stats.elapsedTime.toFixed(1)}s`}
-              />
-              <StatsBox
-                icon={<Activity className="w-4 h-4" />}
-                label="Current Speed"
-                value={`${stats.currentSpeed.toFixed(1)} strokes/s`}
-              />
-              <StatsBox
-                icon={<Timer className="w-4 h-4" />}
-                label="Average Speed"
-                value={`${stats.averageSpeed.toFixed(1)} strokes/s`}
-              />
-            </div>
-          </div>
-        </div>
-
+        <StatsPanel stats={stats} />
         <div className="flex-1 container mx-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ height: 'calc(100vh - 280px)' }}>
             <TextInputArea 
@@ -164,20 +162,6 @@ export default function Playground() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-
-function StatsBox({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="p-2 rounded-full bg-gray-100">
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">{label}</p>
-        <p className="font-medium">{value}</p>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ZoomIn, ZoomOut, RefreshCcw } from 'lucide-react'
+import { ZoomIn, ZoomOut, RefreshCcw, Loader2 } from 'lucide-react'
 
 interface HandwritingPreviewProps {
   svgPath: string
@@ -87,6 +87,14 @@ export default function HandwritingPreview({
           backgroundSize: '20px 20px, 20px 20px, 10px 10px, 10px 10px',
         }}
       >
+        {!svgPath && isGenerating && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+              <p className="text-sm">Initializing handwriting generation...</p>
+            </div>
+          </div>
+        )}
         <svg 
           className="absolute inset-absolute inset-0 m-2 sm:m-6"
           width="100%" 

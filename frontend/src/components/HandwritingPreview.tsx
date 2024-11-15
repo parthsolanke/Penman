@@ -40,37 +40,37 @@ export default function HandwritingPreview({
   };
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
-      <div className="p-4 border-b flex items-center justify-between">
+    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col min-h-[300px]">
+      <div className="p-2 sm:p-4 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <div>
           <h2 className="font-semibold text-base">Preview</h2>
           <p className="text-sm text-gray-500 mt-0.5">Generated handwriting output</p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 self-end sm:self-auto">
           <button 
             onClick={() => setScale(s => Math.max(1, s - 0.1))}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Zoom out"
           >
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
-          <div className="w-16 text-center">
-            <span className="text-sm font-medium">{(scale * 100).toFixed(0)}%</span>
+          <div className="w-12 sm:w-16 text-center">
+            <span className="text-xs sm:text-sm font-medium">{(scale * 100).toFixed(0)}%</span>
           </div>
           <button 
             onClick={() => setScale(s => Math.min(3, s + 0.1))}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Zoom in"
           >
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
-          <div className="w-px h-6 bg-gray-200 mx-1.5" />
+          <div className="w-px h-5 sm:h-6 bg-gray-200 mx-1.5" />
           <button 
             onClick={handleClear}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-black hover:text-gray-900"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors text-black hover:text-gray-900"
             title="Clear preview"
           >
-            <RefreshCcw className="w-4 h-4" />
+            <RefreshCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function HandwritingPreview({
           backgroundSize: '20px 20px, 20px 20px, 10px 10px, 10px 10px',
         }}
       >
-        <div className="absolute inset-0 m-6">
+        <div className="absolute inset-0 m-2 sm:m-6">
           <svg 
             width="100%" 
             height="100%" 

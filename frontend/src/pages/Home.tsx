@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Edit, Wand2, Pen } from 'lucide-react'
+import { ArrowRight, Edit, Wand2 } from 'lucide-react'
 import Header from '@/components/Header'
 
 export default function Home() {

@@ -40,7 +40,7 @@ export default function HandwritingPreview({
   };
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
+    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col min-h-[300px]">
       <div className="p-2 sm:p-4 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <div>
           <h2 className="font-semibold text-base">Preview</h2>
@@ -88,7 +88,7 @@ export default function HandwritingPreview({
         }}
       >
         <svg 
-          className="absolute inset-0"
+          className="absolute inset-absolute inset-0 m-2 sm:m-6"
           width="100%" 
           height="100%" 
           viewBox={viewBox || `0 0 ${width} ${height}`}

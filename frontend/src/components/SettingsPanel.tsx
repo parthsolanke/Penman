@@ -1,5 +1,3 @@
-'use client'
-
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -11,20 +9,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Check, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { fonts, colors } from "@/lib/constants"
 import ExportButton from './ExportButton'
 import { useSettings } from '@/contexts/SettingsContext'
-
-const fonts = [
-  "Fantasia", "Grotesque", "Nova", "Sansara", "Mirage",
-  "Cascade", "Shadow", "Pixel", "Harmony", "Classic",
-  "Revival", "Minimal", "Vibes"
-]
-
-const colors = [
-  "#000000", "#FFA500", "#FF0000", "#00FF00", "#0000FF",
-  "#FFFF00", "#00FFFF", "#FF00FF", "#C0C0C0", "#808080",
-  "#800000", "#808000", "#008000", "#800080", "#008080", "#000080"
-]
 
 interface SettingsPanelProps {
   previewRef: React.RefObject<HTMLElement>

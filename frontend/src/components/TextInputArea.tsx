@@ -1,16 +1,7 @@
 import { useState } from 'react'
 import { Textarea } from "@/components/ui/textarea"
 import GenerateButton from './GenerateButton'
-
-const VALID_CHARACTERS = new Set([
-  '\x00', ' ', '!', '"', '#', "'", '(', ')', ',', '-', '.',
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';',
-  '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
-  'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'V', 'W', 'Y',
-  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
-  'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
-  'y', 'z'
-])
+import { VALID_CHARACTERS } from '@/lib/constants'
 
 interface TextInputAreaProps {
   text: string

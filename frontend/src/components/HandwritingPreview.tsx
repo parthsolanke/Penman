@@ -40,7 +40,7 @@ export default function HandwritingPreview({
   };
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col min-h-[300px]">
+    <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
       <div className="p-2 sm:p-4 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <div>
           <h2 className="font-semibold text-base">Preview</h2>
@@ -87,36 +87,35 @@ export default function HandwritingPreview({
           backgroundSize: '20px 20px, 20px 20px, 10px 10px, 10px 10px',
         }}
       >
-        <div className="absolute inset-0 m-2 sm:m-6">
-          <svg 
-            width="100%" 
-            height="100%" 
-            viewBox={viewBox || `0 0 ${width} ${height}`}
-            preserveAspectRatio="xMidYMid meet"
-            style={{ 
-              transform: `scale(${scale})`,
-              transformOrigin: 'center',
-              transition: 'transform 0.2s ease'
+        <svg 
+          className="absolute inset-0"
+          width="100%" 
+          height="100%" 
+          viewBox={viewBox || `0 0 ${width} ${height}`}
+          preserveAspectRatio="xMidYMid contain"
+          style={{ 
+            transform: `scale(${scale})`,
+            transformOrigin: 'center',
+            transition: 'transform 0.2s ease'
+          }}
+        >
+          <path
+            ref={pathRef}
+            d={svgPath}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              animationName: isGenerating ? 'draw' : 'none',
+              animationDuration: '0.01s',
+              animationTimingFunction: 'ease',
+              animationFillMode: 'forwards',
+              animationDelay: '25ms'
             }}
-          >
-            <path
-              ref={pathRef}
-              d={svgPath}
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{
-                animationName: isGenerating ? 'draw' : 'none',
-                animationDuration: '0.01s',
-                animationTimingFunction: 'ease',
-                animationFillMode: 'forwards',
-                animationDelay: '25ms'
-              }}
-            />
-          </svg>
-        </div>
+          />
+        </svg>
       </div>
     </div>
   )

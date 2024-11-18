@@ -25,21 +25,20 @@ from handwriting.models.rnn import rnn
 
 setup_logging(log_file=f"{LOG_DIR}/handwriting_generator.log")
 
-# Constants
 STROKE_SCALE = 1.5
 MAX_LINE_LENGTH = 75
 MAX_TSTEPS_MULTIPLIER = 40
 STROKE_EOS_THRESHOLD = 0.95
 DEFAULT_STROKE_COLOR = 'black'
 MAX_CACHE_SIZE = 32
-CACHE_CLEANUP_INTERVAL = 300  # 5 minutes in seconds
+CACHE_CLEANUP_INTERVAL = 300
 
 @dataclass
 class StrokeConfig:
-    padding = 20  # type: int
-    line_height = OUTPUT_CONFIG["line_height"]  # type: int
-    view_width = OUTPUT_CONFIG["view_width"]  # type: int
-    default_stroke_width = OUTPUT_CONFIG["default_stroke_width"]  # type: float
+    padding = 20
+    line_height = OUTPUT_CONFIG["line_height"]
+    view_width = OUTPUT_CONFIG["view_width"]
+    default_stroke_width = OUTPUT_CONFIG["default_stroke_width"]
 
 class Hand:
     def __init__(self):
@@ -53,7 +52,7 @@ class Hand:
         self.nn.restore()
         self.styles_loader = StylesLoader()
         self.stroke_config = StrokeConfig()
-        self._stroke_transforms = OrderedDict()  # type: OrderedDict[str, Tuple[float, np.ndarray]]
+        self._stroke_transforms = OrderedDict()
         self._last_cleanup = time.time()
 
     def _cleanup_cache(self, force: bool = False) -> None:
@@ -62,11 +61,9 @@ class Hand:
         if not force and current_time - self._last_cleanup < CACHE_CLEANUP_INTERVAL:
             return
 
-        # Remove oldest items if cache is too large
         while len(self._stroke_transforms) > MAX_CACHE_SIZE:
             self._stroke_transforms.popitem(last=False)
             
-        # Remove items older than 5 minutes
         cutoff_time = current_time - CACHE_CLEANUP_INTERVAL
         old_keys = [k for k, (t, _) in self._stroke_transforms.items() if t < cutoff_time]
         for k in old_keys:
@@ -80,7 +77,6 @@ class Hand:
         
         if strokes_key in self._stroke_transforms:
             _, result = self._stroke_transforms[strokes_key]
-            # Move accessed item to end (most recent)
             self._stroke_transforms.move_to_end(strokes_key)
             return result
 

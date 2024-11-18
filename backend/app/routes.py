@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from app.models import DetailedHandwritingRequest, SimpleHandwritingRequest, StreamHandwritingRequest
 from app.utils import split_text_to_segments, validate_characters
 from handwriting.generator import Hand
+import time
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -15,6 +16,7 @@ hand = Hand()
 
 @router.post("/generate")
 async def generate_detailed_handwriting(request: DetailedHandwritingRequest):
+    start_time = time.time()
     try:
         validate_characters(request.text_input)
 
@@ -44,9 +46,12 @@ async def generate_detailed_handwriting(request: DetailedHandwritingRequest):
         logger.error(f"Internal Server Error: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error.")
+    finally:
+        logger.info(f"/generate endpoint took {time.time() - start_time} seconds")
 
 @router.post("/generate-simple")
 async def generate_simple_handwriting(request: SimpleHandwritingRequest):
+    start_time = time.time()
     try:
         lines = split_text_to_segments(request.text_input)
         validate_characters(lines)
@@ -82,9 +87,12 @@ async def generate_simple_handwriting(request: SimpleHandwritingRequest):
         logger.error(f"Internal Server Error: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error.")
+    finally:
+        logger.info(f"/generate-simple endpoint took {time.time() - start_time} seconds")
     
 @router.post("/svg-to-pdf")
 async def convert_svg_to_pdf(file: UploadFile = File(...)):
+    start_time = time.time()
     try:
         svg_content = await file.read()
 
@@ -99,9 +107,12 @@ async def convert_svg_to_pdf(file: UploadFile = File(...)):
         logger.error(f"Internal Server Error: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error.")
+    finally:
+        logger.info(f"/svg-to-pdf endpoint took {time.time() - start_time} seconds")
     
 @router.post("/generate-stream")
 async def stream_handwriting(request: StreamHandwritingRequest):
+    start_time = time.time()
     try:
         lines = split_text_to_segments(request.text_input)
         validate_characters(lines)
@@ -150,3 +161,5 @@ async def stream_handwriting(request: StreamHandwritingRequest):
         logger.error(f"Internal Server Error: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error.")
+    finally:
+        logger.info(f"/generate-stream endpoint took {time.time() - start_time} seconds")

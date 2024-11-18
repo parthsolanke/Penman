@@ -1,5 +1,4 @@
 import numpy as np
-import base64
 import svgwrite
 import logging
 import io
@@ -7,8 +6,10 @@ import asyncio
 import cairosvg
 import functools
 import traceback
-from typing import List, Dict, Optional, Any, AsyncGenerator
-from functools import lru_cache
+from dataclasses import dataclass
+from typing import List, Dict, Optional, Any, Generator, Tuple, Union
+from collections import OrderedDict
+import time
 
 from handwriting.config import (
     MODEL_CONFIG, 
@@ -24,10 +25,25 @@ from handwriting.models.rnn import rnn
 
 setup_logging(log_file=f"{LOG_DIR}/handwriting_generator.log")
 
-class Hand(object):
+# Constants
+STROKE_SCALE = 1.5
+MAX_LINE_LENGTH = 75
+MAX_TSTEPS_MULTIPLIER = 40
+STROKE_EOS_THRESHOLD = 0.95
+DEFAULT_STROKE_COLOR = 'black'
+MAX_CACHE_SIZE = 32
+CACHE_CLEANUP_INTERVAL = 300  # 5 minutes in seconds
+
+@dataclass
+class StrokeConfig:
+    padding = 20  # type: int
+    line_height = OUTPUT_CONFIG["line_height"]  # type: int
+    view_width = OUTPUT_CONFIG["view_width"]  # type: int
+    default_stroke_width = OUTPUT_CONFIG["default_stroke_width"]  # type: float
+
+class Hand:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.logger.info("Initializing Handwriting Model...")
         self.nn = rnn(
             log_dir=LOG_DIR,
             checkpoint_dir=CHECKPOINT_DIR,
@@ -36,9 +52,55 @@ class Hand(object):
         )
         self.nn.restore()
         self.styles_loader = StylesLoader()
-        self._stroke_cache = {} 
+        self.stroke_config = StrokeConfig()
+        self._stroke_transforms = OrderedDict()  # type: OrderedDict[str, Tuple[float, np.ndarray]]
+        self._last_cleanup = time.time()
 
-    async def write(self, lines, biases=None, styles=None, stroke_colors=None, stroke_widths=None, as_base64=False, as_pdf=False):
+    def _cleanup_cache(self, force: bool = False) -> None:
+        """Cleanup old cache entries"""
+        current_time = time.time()
+        if not force and current_time - self._last_cleanup < CACHE_CLEANUP_INTERVAL:
+            return
+
+        # Remove oldest items if cache is too large
+        while len(self._stroke_transforms) > MAX_CACHE_SIZE:
+            self._stroke_transforms.popitem(last=False)
+            
+        # Remove items older than 5 minutes
+        cutoff_time = current_time - CACHE_CLEANUP_INTERVAL
+        old_keys = [k for k, (t, _) in self._stroke_transforms.items() if t < cutoff_time]
+        for k in old_keys:
+            del self._stroke_transforms[k]
+            
+        self._last_cleanup = current_time
+
+    def _transform_strokes(self, strokes_key: str) -> np.ndarray:
+        """Transform strokes with time-based caching"""
+        current_time = time.time()
+        
+        if strokes_key in self._stroke_transforms:
+            _, result = self._stroke_transforms[strokes_key]
+            # Move accessed item to end (most recent)
+            self._stroke_transforms.move_to_end(strokes_key)
+            return result
+
+        strokes = np.frombuffer(strokes_key, dtype=np.float32).reshape(-1, 3)
+        result = drawing.denoise(strokes)
+        result = drawing.align(result[:, :2])
+        
+        self._stroke_transforms[strokes_key] = (current_time, result)
+        self._cleanup_cache()
+        
+        return result
+
+    async def write(self, 
+                   lines: List[str], 
+                   biases: Optional[List[float]] = None, 
+                   styles: Optional[List[str]] = None, 
+                   stroke_colors: Optional[List[str]] = None, 
+                   stroke_widths: Optional[List[float]] = None, 
+                   as_base64: bool = False, 
+                   as_pdf: bool = False) -> Union[str, bytes]:
         """Async wrapper for write using run_in_executor"""
         loop = asyncio._get_running_loop()
         result = await loop.run_in_executor(
@@ -67,23 +129,22 @@ class Hand(object):
 
         return svg_output
 
-    def _validate_input(self, lines, valid_char_set):
-        if lines is None or len(lines) == 0:
+    def _validate_input(self, lines: List[str], valid_char_set: set) -> None:
+        if not lines:
             raise ValueError("Lines cannot be None or empty")
-
+        
         for line_num, line in enumerate(lines):
-            if len(line) > 75:
-                raise ValueError(f"Each line must be at most 75 characters. Line {line_num} contains {len(line)}")
-            for char in line:
-                if char not in valid_char_set:
-                    self.logger.error(f"Invalid character '{char}' detected in line {line_num}. Valid character set is {valid_char_set}")
-                    raise ValueError(f"Invalid character '{char}' detected in line {line_num}. Valid character set is {valid_char_set}")
+            if len(line) > MAX_LINE_LENGTH:
+                raise ValueError(f"Line {line_num} exceeds {MAX_LINE_LENGTH} characters")
+            invalid_chars = set(line) - valid_char_set
+            if invalid_chars:
+                raise ValueError(f"Invalid characters in line {line_num}: {invalid_chars}")
 
     def _sample(self, lines, biases=None, styles=None):
         self.logger.info("Sampling strokes for handwriting generation...")
         
         num_samples = len(lines)
-        max_tsteps = 40 * max(len(line) for line in lines)
+        max_tsteps = MAX_TSTEPS_MULTIPLIER * max(len(line) for line in lines)
         biases = biases if biases is not None else [0.5] * num_samples
 
         x_prime = np.zeros([num_samples, 1200, 3])
@@ -127,14 +188,14 @@ class Hand(object):
     def _draw(self, strokes, lines, stroke_colors=None, stroke_widths=None):
         self.logger.info("Drawing SVG output...")
         
-        stroke_colors = stroke_colors or ['black'] * len(lines)
-        stroke_widths = stroke_widths or [OUTPUT_CONFIG["default_stroke_width"]] * len(lines)
+        stroke_colors = stroke_colors or [DEFAULT_STROKE_COLOR] * len(lines)
+        stroke_widths = stroke_widths or [self.stroke_config.default_stroke_width] * len(lines)
 
-        line_height = OUTPUT_CONFIG["line_height"]
-        view_width = OUTPUT_CONFIG["view_width"]
+        line_height = self.stroke_config.line_height
+        view_width = self.stroke_config.view_width
         view_height = line_height * (len(strokes) + 1)
         
-        padding = 20
+        padding = self.stroke_config.padding
         
         dwg = svgwrite.Drawing()
         dwg.viewbox(width=view_width, height=view_height)
@@ -152,7 +213,7 @@ class Hand(object):
                 initial_coord[1] -= line_height
                 continue
 
-            offsets[:, :2] *= 1.5
+            offsets[:, :2] *= STROKE_SCALE
             strokes = drawing.offsets_to_coords(offsets)
             strokes = drawing.denoise(strokes)
             strokes[:, :2] = drawing.align(strokes[:, :2])
@@ -197,19 +258,18 @@ class Hand(object):
         styles: Optional[List[str]] = None, 
         stroke_colors: Optional[List[str]] = None, 
         stroke_widths: Optional[List[float]] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
-        
+    ) -> Generator[Dict[str, Any], None, None]:
         self.logger.info("Starting handwriting stream...")
         
         num_samples = len(lines)
         biases = biases if biases is not None else [0.5] * num_samples
-        stroke_colors = stroke_colors or ['black'] * num_samples
-        stroke_widths = stroke_widths or [OUTPUT_CONFIG["default_stroke_width"]] * num_samples
+        stroke_colors = stroke_colors or [DEFAULT_STROKE_COLOR] * num_samples
+        stroke_widths = stroke_widths or [self.stroke_config.default_stroke_width] * num_samples
 
-        line_height = OUTPUT_CONFIG["line_height"]
-        view_width = OUTPUT_CONFIG["view_width"]
+        line_height = self.stroke_config.line_height
+        view_width = self.stroke_config.view_width
         view_height = line_height * (len(lines) + 1)
-        padding = 20
+        padding = self.stroke_config.padding
         initial_coord = np.array([padding, -(3 * line_height / 4)])
 
         setup_data = {
@@ -242,7 +302,7 @@ class Hand(object):
                     chars[0, :len(encoded)] = encoded
                     chars_len[0] = len(encoded)
 
-                max_tsteps = 40 * len(line)
+                max_tsteps = MAX_TSTEPS_MULTIPLIER * len(line)
 
                 samples = await asyncio._get_running_loop().run_in_executor(
                     None,
@@ -269,7 +329,7 @@ class Hand(object):
                     continue
 
                 offsets = all_strokes.copy()
-                offsets[:, :2] *= 1.5
+                offsets[:, :2] *= STROKE_SCALE
                 strokes = drawing.offsets_to_coords(offsets)
                 strokes = drawing.denoise(strokes)
                 strokes[:, :2] = drawing.align(strokes[:, :2])
@@ -291,7 +351,7 @@ class Hand(object):
                 x_offset = (view_width - (strokes[:, 0].max() - strokes[:, 0].min())) / 2
                 strokes[:, 0] += x_offset - strokes[:, 0].min()
 
-                eos_indices = np.where(all_strokes[:, 2] >= 0.95)[0]
+                eos_indices = np.where(all_strokes[:, 2] >= STROKE_EOS_THRESHOLD)[0]
                 current_path = "M{},{} ".format(0, 0)
                 prev_eos = 1.0
 
@@ -302,7 +362,7 @@ class Hand(object):
                     current_path += '{}{},{} '.format('M' if prev_eos == 1.0 else 'L', x, y)
                     prev_eos = eos
                     
-                    should_yield = (eos >= 0.95 or stroke_idx in eos_indices or stroke_idx == len(strokes) - 1)
+                    should_yield = (eos >= STROKE_EOS_THRESHOLD or stroke_idx in eos_indices or stroke_idx == len(strokes) - 1)
                     
                     if should_yield and current_path.strip() != "M0,0":
                         path_data = {
@@ -327,19 +387,6 @@ class Hand(object):
                 'message': str(e)
             }
 
-    @lru_cache(maxsize=128)
-    def _process_line(self, line: str, style: Optional[str] = None):
-        """Cache frequently processed lines with their styles"""
-        chars = np.zeros([1, 120])
-        chars_len = np.zeros([1])
-        
-        if style is not None:
-            x_p, c_p = self.styles_loader.load_style(line, style)
-            return x_p, c_p
-        else:
-            encoded = drawing.encode_ascii(line)
-            return encoded
-
     def _optimize_strokes(self, strokes: np.ndarray, tolerance: float = 0.01) -> np.ndarray:
         """Optimize stroke data by removing redundant points"""
         if len(strokes) < 3:
@@ -351,10 +398,9 @@ class Hand(object):
             prev_point = strokes[i - 1]
             next_point = strokes[i + 1]
             
-            # Calculate point significance
             v1 = curr_point[:2] - prev_point[:2]
             v2 = next_point[:2] - curr_point[:2]
-            if np.abs(np.cross(v1, v2)) > tolerance or curr_point[2] >= 0.95:
+            if np.abs(np.cross(v1, v2)) > tolerance or curr_point[2] >= STROKE_EOS_THRESHOLD:
                 optimized.append(curr_point)
                 
         optimized.append(strokes[-1])
@@ -378,8 +424,53 @@ class Hand(object):
             self.logger.error(f"Error generating PDF: {e}")
             raise
 
+    @functools.lru_cache(maxsize=32)
+    def _transform_strokes(self, strokes_key: str) -> np.ndarray:
+        """Cache transformed strokes to avoid repeated calculations"""
+        strokes = np.frombuffer(strokes_key, dtype=np.float32).reshape(-1, 3)
+        strokes = drawing.denoise(strokes)
+        strokes = drawing.align(strokes[:, :2])
+        return strokes
+
+    def _prepare_feed_dict(self, line: str, style: Optional[str], bias: float) -> Dict[Any, Any]:
+        """Prepare neural network feed dictionary"""
+        x_prime = np.zeros([1, 1200, 3])
+        x_prime_len = np.zeros([1])
+        chars = np.zeros([1, 120])
+        chars_len = np.zeros([1])
+
+        if style is not None:
+            x_p, c_p = self.styles_loader.load_style(line, style)
+            x_prime[0, :len(x_p)] = x_p
+            x_prime_len[0] = len(x_p)
+            chars[0, :len(c_p)] = np.array(c_p)
+            chars_len[0] = len(c_p)
+        else:
+            encoded = drawing.encode_ascii(line)
+            chars[0, :len(encoded)] = encoded
+            chars_len[0] = len(encoded)
+
+        return {
+            self.nn.prime: style is not None,
+            self.nn.x_prime: x_prime,
+            self.nn.x_prime_len: x_prime_len,
+            self.nn.num_samples: 1,
+            self.nn.sample_tsteps: MAX_TSTEPS_MULTIPLIER * len(line),
+            self.nn.c: chars,
+            self.nn.c_len: chars_len,
+            self.nn.bias: [bias]
+        }
+
+    async def _run_model(self, feed_dict: Dict[Any, Any]) -> np.ndarray:
+        """Run model asynchronously"""
+        return await asyncio.get_running_loop().run_in_executor(
+            None,
+            functools.partial(self.nn.session.run, [self.nn.sampled_sequence], feed_dict=feed_dict)
+        )
+
     def __del__(self):
-        """Cleanup method to clear caches"""
-        self._stroke_cache.clear()
-        self._process_line.cache_clear()
+        """Cleanup all cached data"""
+        self._cleanup_cache(force=True)
+        self._stroke_transforms.clear()
+        self._transform_strokes.cache_clear()
 

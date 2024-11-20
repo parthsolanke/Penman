@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Edit, Wand2 } from 'lucide-react'
+import { ArrowRight, Edit, Wand2, Heart } from 'lucide-react'
 import Header from '@/components/Header'
 
 export default function Home() {
@@ -9,15 +9,18 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
-          <div className="container px-4 md:px-6">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[url('/hero-image.svg')] bg-no-repeat bg-center bg-[length:120%] opacity-[0.12] scale-110"></div>
+          </div>
+          <div className="container px-4 md:px-6 relative">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
                   Welcome to Penman
                 </h1>
-                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                  A Handwriting Generator for Personalized Digital Content Creation
+                <p className="mx-auto max-w-[700px] text-gray-700 md:text-xl dark:text-gray-300">
+                  Create digital content with authentic human handwriting styles
                 </p>
               </div>
               <div className="space-x-4">
@@ -54,13 +57,13 @@ export default function Home() {
                 <Card>
                   <CardHeader>
                     <Wand2 className="h-10 w-10 mb-2" />
-                    <CardTitle>Handwriting Synthesis</CardTitle>
+                    <CardTitle>Diverse Handwriting Styles</CardTitle>
                     <CardDescription>
-                      Generate authentic-looking handwritten text from digital input
+                      Choose from a collection of authentic human handwriting styles
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    Use our advanced AI to create personalized handwriting that looks just like yours.
+                    Select from our curated collection of natural handwriting styles, each mimicking real human penmanship.
                   </CardContent>
                 </Card>
                 <Card>
@@ -68,11 +71,11 @@ export default function Home() {
                     <Edit className="h-10 w-10 mb-2" />
                     <CardTitle>Custom Card Creation</CardTitle>
                     <CardDescription>
-                      Design and print personalized cards with your handwriting
+                      Design beautiful cards with realistic handwritten text
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    Choose from a variety of templates and add your personal touch with synthesized handwriting.
+                    Create personalized cards by combining your chosen handwriting style with our versatile templates.
                   </CardContent>
                 </Card>
               </div>
@@ -82,8 +85,9 @@ export default function Home() {
       </main>
       <footer className="py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">
-            Developed by <span className="font-medium">Parth Solanke</span>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            Developed with <Heart className="h-4 w-4 text-red-500 fill-red-500" /> by{" "}
+            <span className="font-medium">Parth Solanke</span>
           </p>
           <Button variant="ghost" size="sm" asChild>
             <a

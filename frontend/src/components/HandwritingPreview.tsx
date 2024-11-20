@@ -25,7 +25,11 @@ export default function HandwritingPreview({
   onAbort
 }: HandwritingPreviewProps) {
   const pathRef = useRef<SVGPathElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (pathRef.current && svgPath) {
@@ -37,7 +41,44 @@ export default function HandwritingPreview({
   const handleClear = () => {
     onAbort?.();
     onClear?.();
+    setPosition({ x: 0, y: 0 });
   };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only check for left click
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return; // Only check for dragging state
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    const handleMouseLeave = () => setIsDragging(false);
+    const container = containerRef.current;
+    
+    if (container) {
+      container.addEventListener('mouseleave', handleMouseLeave);
+    }
+    
+    return () => {
+      if (container) {
+        container.removeEventListener('mouseleave', handleMouseLeave);
+      }
+    };
+  }, []);
 
   return (
     <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col min-h-[300px]">
@@ -76,7 +117,11 @@ export default function HandwritingPreview({
       </div>
 
       <div 
-        className="flex-1 relative bg-white overflow-hidden"
+        ref={containerRef}
+        className="flex-1 relative bg-white overflow-auto cursor-move"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
         style={{
           backgroundImage: `
             linear-gradient(#e5e7eb 1px, transparent 1px),
@@ -95,35 +140,46 @@ export default function HandwritingPreview({
             </div>
           </div>
         )}
-        <svg 
-          className="absolute inset-absolute inset-0 m-2 sm:m-6"
-          width="100%" 
-          height="100%" 
-          viewBox={viewBox || `0 0 ${width} ${height}`}
-          preserveAspectRatio="xMidYMid contain"
-          style={{ 
-            transform: `scale(${scale})`,
-            transformOrigin: 'center',
-            transition: 'transform 0.2s ease'
-          }}
-        >
-          <path
-            ref={pathRef}
-            d={svgPath}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              animationName: isGenerating ? 'draw' : 'none',
-              animationDuration: '0.01s',
-              animationTimingFunction: 'ease',
-              animationFillMode: 'forwards',
-              animationDelay: '25ms'
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg 
+            width="100%" 
+            height="100%" 
+            viewBox={viewBox || `0 0 ${width} ${height}`}
+            preserveAspectRatio="xMidYMid meet"
+            style={{ 
+              width: '100%',
+              height: '100%',
+              cursor: isDragging ? 'grabbing' : 'grab'
             }}
-          />
-        </svg>
+          >
+            <g 
+              transform={`translate(${position.x}, ${position.y}) scale(${scale})`}
+              style={{ 
+                transition: isDragging ? 'none' : 'transform 0.2s ease',
+                transformOrigin: 'center'
+              }}
+            >
+              <g transform={`translate(${strokeWidth/2},${strokeWidth/2})`}>
+                <path
+                  ref={pathRef}
+                  d={svgPath}
+                  fill="none"
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    animationName: isGenerating ? 'draw' : 'none',
+                    animationDuration: '0.01s',
+                    animationTimingFunction: 'ease',
+                    animationFillMode: 'forwards',
+                    animationDelay: '25ms'
+                  }}
+                />
+              </g>
+            </g>
+          </svg>
+        </div>
       </div>
     </div>
   )

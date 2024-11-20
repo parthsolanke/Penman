@@ -1,8 +1,8 @@
 
 export const fonts = [
-  "Fantasia", "Grotesque", "Nova", "Sansara", "Mirage",
+  "Fantasia", "Sansara", "Grotesque", "Mirage",
   "Cascade", "Shadow", "Pixel", "Harmony", "Classic",
-  "Revival", "Minimal", "Vibes"
+  "Revival", "Minimal", "Vibes", "Nova"
 ]
 
 export const colors = [

@@ -1,6 +1,6 @@
 # Penman
 
-![Playground](./public/assets/home.png)
+![Home](./public/assets/home.png)
 
 "Penman" – A handwriting generator app that brings a personalized, authentic touch to digital content in various forms. The app provides a playground to experiment with handwriting effects and customize digital content. Users can create personalized cards from templates and export them in various formats.
 

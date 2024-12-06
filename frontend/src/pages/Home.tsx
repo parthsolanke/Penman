@@ -26,7 +26,7 @@ export default function Home() {
               <div className="space-x-4">
                 <Link to="/playground">
                   <Button>
-                    Try the Playground
+                    Try Playground
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -54,7 +54,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-2 lg:gap-12">
-                <Card>
+                <Card className="hover:shadow-lg transition-shadow duration-300">
                   <CardHeader>
                     <Wand2 className="h-10 w-10 mb-2" />
                     <CardTitle>Diverse Handwriting Styles</CardTitle>
@@ -66,7 +66,7 @@ export default function Home() {
                     Select from our curated collection of natural handwriting styles, each mimicking real human penmanship.
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="hover:shadow-lg transition-shadow duration-300">
                   <CardHeader>
                     <Edit className="h-10 w-10 mb-2" />
                     <CardTitle>Custom Card Creation</CardTitle>

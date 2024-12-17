@@ -42,3 +42,8 @@ This backend uses Python 3.6. To run the application, follow these steps:
     ```sh
     docker run -p 8000:8000 --env-file .env penman-backend
     ```
+
+3. Run Docker container in detached mode and restart always:
+    ```sh
+    docker run -d --restart always -p 8000:8000 --env-file .env penman-backend
+    ```

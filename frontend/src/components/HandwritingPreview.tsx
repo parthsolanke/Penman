@@ -45,7 +45,7 @@ export default function HandwritingPreview({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only check for left click
+    if (e.button !== 0) return;
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -54,7 +54,7 @@ export default function HandwritingPreview({
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return; // Only check for dragging state
+    if (!isDragging) return;
     setPosition({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y

@@ -1,91 +1,190 @@
-import React, { useState } from 'react'
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Download } from 'lucide-react'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
+} from "@/components/ui/dropdown-menu";
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
 
 type ExportButtonProps = {
-  targetRef: React.RefObject<HTMLElement>
-  filename?: string
-}
+  svgPath: string;
+  strokeColor: string;
+  strokeWidth: number;
+  viewBox?: string;
+  width: number;
+  height: number;
+  filename?: string;
+};
 
-export default function ExportButton({ targetRef, filename = 'export' }: ExportButtonProps) {
-  const [isExporting, setIsExporting] = useState(false)
+const SCALE_FACTOR = 3;
 
-  const exportToPng = async (transparent: boolean = false) => {
-    if (!targetRef.current) return
-    setIsExporting(true)
+const downloadFile = (url: string, filename: string) => {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const reconstructSvg = (
+  svgPath: string,
+  strokeColor: string,
+  strokeWidth: number,
+  width: number,
+  height: number,
+  viewBox?: string,
+  backgroundColor?: string,
+  responsive = false
+) => {
+  const backgroundRect = backgroundColor
+    ? `<rect width="100%" height="100%" fill="${backgroundColor}" />`
+    : "";
+
+  return `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      ${responsive ? 'width="100%" height="100%"' : `width="${width}" height="${height}"`}
+      viewBox="${viewBox || `0 0 ${width} ${height}`}"
+      preserveAspectRatio="xMidYMid meet"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+    >
+      ${backgroundRect}
+      <path
+        d="${svgPath}"
+        fill="none"
+        stroke="${strokeColor}"
+        stroke-width="${strokeWidth}"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `;
+};
+
+export default function ExportButton({
+  svgPath,
+  strokeColor,
+  strokeWidth,
+  viewBox,
+  width,
+  height,
+  filename = "export",
+}: ExportButtonProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportToPng = async (transparent = false) => {
+    const svgMarkup = reconstructSvg(
+      svgPath,
+      strokeColor,
+      strokeWidth,
+      width,
+      height,
+      viewBox,
+      transparent ? undefined : "#ffffff"
+    );
+    const blob = new Blob([svgMarkup], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+
+    setIsExporting(true);
     try {
-      const canvas = await html2canvas(targetRef.current, {
-        backgroundColor: transparent ? null : '#ffffff'
-      })
-      const dataUrl = canvas.toDataURL('image/png')
-      downloadFile(dataUrl, `${filename}${transparent ? '-transparent' : ''}.png`)
+      const img = new Image();
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      img.onload = () => {
+        canvas.width = width;
+        canvas.height = height;
+
+        if (!transparent && ctx) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx?.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        downloadFile(dataUrl, `${filename}${transparent ? "-transparent" : ""}.png`);
+        URL.revokeObjectURL(url);
+      };
+
+      img.onerror = (error) => console.error("Error loading SVG for PNG export:", error);
+      img.src = url;
     } catch (error) {
-      console.error('Error exporting to PNG:', error)
+      console.error("Error exporting PNG:", error);
     }
-    setIsExporting(false)
-  }
+    setIsExporting(false);
+  };
 
   const exportToPdf = async () => {
-    if (!targetRef.current) return
-    setIsExporting(true)
+    const svgMarkup = reconstructSvg(svgPath, strokeColor, strokeWidth, width, height, viewBox, "#ffffff");
+    const blob = new Blob([svgMarkup], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+
+    setIsExporting(true);
     try {
-      const canvas = await html2canvas(targetRef.current)
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
-      })
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height)
-      pdf.save(`${filename}.pdf`)
+      const img = new Image();
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      await new Promise((resolve, reject) => {
+        img.onload = () => {
+          canvas.width = width * SCALE_FACTOR;
+          canvas.height = height * SCALE_FACTOR;
+
+          if (ctx) {
+            ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+          }
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 1.0);
+          const pdf = new jsPDF({
+            orientation: width > height ? "landscape" : "portrait",
+            unit: "px",
+            format: [width, height],
+          });
+          pdf.addImage(dataUrl, "JPEG", 0, 0, width, height);
+          pdf.save(`${filename}.pdf`);
+          URL.revokeObjectURL(url);
+          resolve(true);
+        };
+
+        img.onerror = (error) => {
+          console.error("Error loading SVG for PDF export:", error);
+          reject(error);
+        };
+        img.src = url;
+      });
     } catch (error) {
-      console.error('Error exporting to PDF:', error)
+      console.error("Error exporting PDF:", error);
     }
-    setIsExporting(false)
-  }
+    setIsExporting(false);
+  };
 
   const exportToSvg = () => {
-    if (!targetRef.current) return
-    setIsExporting(true)
-    try {
-      const svgElement = targetRef.current.querySelector('svg')
-      if (svgElement) {
-        const svgData = new XMLSerializer().serializeToString(svgElement)
-        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-        const svgUrl = URL.createObjectURL(svgBlob)
-        downloadFile(svgUrl, `${filename}.svg`)
-        URL.revokeObjectURL(svgUrl)
-      } else {
-        console.error('No SVG element found')
-      }
-    } catch (error) {
-      console.error('Error exporting to SVG:', error)
-    }
-    setIsExporting(false)
-  }
+    const svgMarkup = reconstructSvg(svgPath, strokeColor, strokeWidth, width, height, viewBox, "#ffffff");
+    const blob = new Blob([svgMarkup], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
 
-  const downloadFile = (url: string, filename: string) => {
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    setIsExporting(true);
+    try {
+      downloadFile(url, `${filename}.svg`);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting SVG:", error);
+    }
+    setIsExporting(false);
+  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="w-[140px]" disabled={isExporting}>
-          {isExporting ? 'Exporting...' : 'Export'}
+          {isExporting ? "Exporting..." : "Export"}
           <Download className="ml-2 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -104,5 +203,5 @@ export default function ExportButton({ targetRef, filename = 'export' }: ExportB
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

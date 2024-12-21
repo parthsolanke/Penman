@@ -13,11 +13,20 @@ import { fonts, colors } from "@/lib/constants"
 import ExportButton from './ExportButton'
 import { useSettings } from '@/contexts/SettingsContext'
 
-interface SettingsPanelProps {
-  previewRef: React.RefObject<HTMLElement>
-}
 
-export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
+type SettingsPanelProps = {
+  svgPath: string;
+  viewBox: string | undefined;
+  width: number;
+  height: number;
+};
+
+export default function SettingsPanel({
+  svgPath,
+  viewBox,
+  width,
+  height,
+}: SettingsPanelProps) {
   const {
     font,
     legibility,
@@ -125,7 +134,14 @@ export default function SettingsPanel({ previewRef }: SettingsPanelProps) {
             </div>
           </div>
           <div className="flex-none">
-            <ExportButton targetRef={previewRef} filename="penman-export" />
+            <ExportButton
+            svgPath={svgPath}
+            strokeColor={strokeColor} 
+            strokeWidth={strokeWidth} 
+            viewBox={viewBox} 
+            width={width} 
+            height={height} 
+            filename="penman-export" />
           </div>
         </div>
       </div>

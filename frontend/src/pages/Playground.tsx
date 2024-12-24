@@ -137,12 +137,13 @@ export default function Playground() {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
       <div className="flex-1 flex flex-col">
-        <SettingsPanel
-          svgPath={svgPath}
-          viewBox={viewBox}
-          width={dimensions.width}
-          height={dimensions.height}
-          />
+      <SettingsPanel
+        svgPath={svgPath}
+        viewBox={viewBox}
+        width={dimensions.width}
+        height={dimensions.height}
+        isGenerating={isGenerating}
+      />
         <StatsPanel stats={stats} />
         <div className="flex-1 container mx-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ height: 'calc(100vh - 280px)' }}>

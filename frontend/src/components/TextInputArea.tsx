@@ -67,10 +67,18 @@ export default function TextInputArea({ text, onTextChange, onGenerateClick, isG
           id="text-input"
           value={text}
           onChange={handleTextChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              if (!e.shiftKey) {
+                e.preventDefault();
+                onGenerateClick(); 
+              }
+            }
+          }}
           className={`flex-1 resize-none p-4 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-lg bg-transparent
             ${invalidChars.length > 0 ? 'border-red-500' : ''}`}
         />
-
+        
         <div className="p-4 border-t bg-gray-50 rounded-b-lg">
           <GenerateButton 
             onClick={onGenerateClick} 

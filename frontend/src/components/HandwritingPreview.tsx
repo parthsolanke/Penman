@@ -30,6 +30,22 @@ export default function HandwritingPreview({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const lastTouchRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    
+    const handleScreenChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setScale(e.matches ? 2 : 1);
+    };
+
+    handleScreenChange(mediaQuery);
+    mediaQuery.addEventListener('change', handleScreenChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleScreenChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (pathRef.current && svgPath) {
@@ -42,6 +58,8 @@ export default function HandwritingPreview({
     onAbort?.();
     onClear?.();
     setPosition({ x: 0, y: 0 });
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    setScale(isMobile ? 2 : 1);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -63,6 +81,49 @@ export default function HandwritingPreview({
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    
+    e.preventDefault();
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y
+    });
+    lastTouchRef.current = {
+      x: touch.clientX,
+      y: touch.clientY
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    
+    e.preventDefault();
+    const touch = e.touches[0];
+    setPosition({
+      x: touch.clientX - dragStart.x,
+      y: touch.clientY - dragStart.y
+    });
+    lastTouchRef.current = {
+      x: touch.clientX,
+      y: touch.clientY
+    };
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleZoomIn = () => {
+    setScale(s => Math.min(3, s + 0.1));
+  };
+
+  const handleZoomOut = () => {
+    setScale(s => Math.max(1, s - 0.1));
   };
 
   useEffect(() => {
@@ -89,7 +150,7 @@ export default function HandwritingPreview({
         </div>
         <div className="flex items-center gap-1.5 self-end sm:self-auto">
           <button 
-            onClick={() => setScale(s => Math.max(1, s - 0.1))}
+            onClick={handleZoomOut}
             className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Zoom out"
           >
@@ -99,7 +160,7 @@ export default function HandwritingPreview({
             <span className="text-xs sm:text-sm font-medium">{(scale * 100).toFixed(0)}%</span>
           </div>
           <button 
-            onClick={() => setScale(s => Math.min(3, s + 0.1))}
+            onClick={handleZoomIn}
             className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Zoom in"
           >
@@ -118,10 +179,13 @@ export default function HandwritingPreview({
 
       <div 
         ref={containerRef}
-        className="flex-1 relative bg-white overflow-auto cursor-move"
+        className="flex-1 relative bg-white overflow-auto touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={{
           backgroundImage: `
             linear-gradient(#e5e7eb 1px, transparent 1px),

@@ -1,36 +1,86 @@
-# Penman
+# **Penman**
 
-![home](./public/assets/home.png)
+![Home](./public/assets/home.png)
 
-"Penman" – A handwriting generator app that brings a personalized, authentic touch to digital content in various forms. The app provides a playground to experiment with handwriting effects and customize digital content. Users can create personalized cards from templates and export them in various formats.
-
----
-
-### Playground:
-The Playground allows users to experiment with handwriting effects and customize their digital content.
-
-![playground](./public/assets/demo.gif)
-
-#### Features
-- Stream (Handwriting Effect) and Stop
-- Export (PDF, PNG, PNG trans back, SVG)
-- Customize attributes
-
-#### Use Cases
-- Social media text overlay
-- Digital signatures
+**Penman** is a handwriting generator app that brings a personalized, authentic touch to digital content. It allows users to experiment with handwriting effects, create personalized cards from templates, and export their creations in various formats.
 
 ---
 
-### Cards:
-The Cards section provides a UI to create personalized cards from templates.
+## **Features**
+### **Playground**
+The Playground lets users experiment with handwriting effects and customize their digital content.
 
-#### Features
-- Templates library (Notes, Cards)
-- Custom background (Templates)
-- Multi-page docs
-- Upload templates
+![Playground Demo](./public/assets/demo.gif)
 
-#### Use Cases
-- Thank you notes, cards
-- Personalized content creation
+#### **Key Features**
+- **Stream**: Add handwriting effects dynamically.
+- **Stop**: Pause the handwriting effect.
+- **Export**: Save your creations in multiple formats:
+  - PDF
+  - PNG
+  - Transparent PNG
+  - SVG
+- **Customization**: Adjust various attributes for a personalized look.
+
+#### **Use Cases**
+- Text overlays for social media.
+- Creating digital signatures.
+
+---
+
+### **Cards**
+The Cards section provides tools for creating personalized cards from pre-designed templates.
+
+#### **Key Features**
+- Template Library: Access pre-built templates for notes and cards.
+- Custom Backgrounds: Customize templates with your own backgrounds.
+- Upload Templates: Import your custom templates for further editing.
+
+#### **Use Cases**
+- Creating thank-you notes and cards.
+- Designing personalized content for special occasions.
+
+---
+
+## **API Documentation**
+Detailed documentation for the Penman API is available [here](./public/API.md).
+
+---
+
+## **Running the App Using Docker Compose**
+
+### **Prerequisites**
+- [Docker](https://docs.docker.com/get-docker/) installed on your machine.
+- [Docker Compose](https://docs.docker.com/compose/install/) installed (often bundled with Docker Desktop).
+
+### **Steps to Run the App**
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/parthsolanke/Penman.git
+   cd Penman
+   ```
+
+2. **Set Up Environment Files**:
+   Ensure `.env` files are present in the `./backend` and `./frontend` directories. Populate them with the necessary variables.
+
+3. **Build and Run Containers**:
+   ```bash
+   docker-compose up --build
+   ```
+
+4. **Access the Application**:
+   - **Frontend**: Open your browser and navigate to `http://localhost:5173`.
+   - **Backend**: The backend API will be available at `http://localhost:8000`.
+
+5. **Stop the Application**:
+   To stop the application, press `Ctrl+C` in the terminal where the app is running or use:
+   ```bash
+   docker-compose down
+   ```
+
+---
+
+## **License**
+[MIT License](./LICENSE) © 2024 Penman
+
+---

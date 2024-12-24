@@ -42,11 +42,6 @@ The Cards section provides tools for creating personalized cards from pre-design
 
 ---
 
-## **API Documentation**
-Detailed documentation for the Penman API is available [here](./public/API.md).
-
----
-
 ## **Running the App Using Docker Compose**
 
 ### **Prerequisites**
@@ -69,7 +64,7 @@ Detailed documentation for the Penman API is available [here](./public/API.md).
    ```
 
 4. **Access the Application**:
-   - **Frontend**: Open your browser and navigate to `http://localhost:5173`.
+   - **Frontend**: Open your browser and navigate to `http://localhost:3000`.
    - **Backend**: The backend API will be available at `http://localhost:8000`.
 
 5. **Stop the Application**:
@@ -80,7 +75,10 @@ Detailed documentation for the Penman API is available [here](./public/API.md).
 
 ---
 
-## **License**
-[MIT License](./LICENSE) © 2024 Penman
+## **API Documentation**
+Detailed documentation for the Penman API is available [here](./public/API.md).
 
 ---
+
+## **License**
+[MIT License](./LICENSE) © 2024 Penman

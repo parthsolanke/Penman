@@ -5,6 +5,23 @@ export const fonts = [
   "Revival", "Minimal", "Vibes", "Nova"
 ]
 
+export const cardTemplates = [
+  { id: 'floral', name: 'floral', svg: '/templates/floral.svg' },
+  { id: 'post', name: 'post', svg: '/templates/post.svg' },
+  { id: 'nature', name: 'nature', svg: '/templates/nature.svg' },
+  { id: 'mermaid', name: 'mermaid', svg: '/templates/mermaid.svg' },
+  { id: 'watercolor', name: 'watercolor', svg: '/templates/watercolor.svg' },
+  { id: 'geometric', name: 'geometric', svg: '/templates/geometric.svg' },
+]
+
+export const cardSizes = {
+  'A6': { width: 400, height: 600 },
+  'A5': { width: 600, height: 800 },
+  'A4': { width: 800, height: 1200 },
+  'Square': { width: 800, height: 800 },
+  'Pano': { width: 1200, height: 600 }
+}
+
 export const colors = [
   "#000000", "#FFA500", "#FF0000", "#00FF00", "#0000FF",
   "#FFFF00", "#00FFFF", "#FF00FF", "#C0C0C0", "#808080",

@@ -88,35 +88,36 @@ export default function ExportButton({
     );
     const blob = new Blob([svgMarkup], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
-
+  
     setIsExporting(true);
     try {
       const img = new Image();
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-
+  
       img.onload = () => {
-        canvas.width = width;
-        canvas.height = height;
-
+        canvas.width = width * SCALE_FACTOR;
+        canvas.height = height * SCALE_FACTOR;
+  
         if (!transparent && ctx) {
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-
-        ctx?.drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL("image/png");
+  
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const dataUrl = canvas.toDataURL("image/png", 1.0);
         downloadFile(dataUrl, `${filename}${transparent ? "-transparent" : ""}.png`);
         URL.revokeObjectURL(url);
       };
-
+  
       img.onerror = (error) => console.error("Error loading SVG for PNG export:", error);
       img.src = url;
     } catch (error) {
       console.error("Error exporting PNG:", error);
     }
     setIsExporting(false);
-  };
+  };  
 
   const exportToPdf = async () => {
     const svgMarkup = reconstructSvg(svgPath, strokeColor, strokeWidth, width, height, viewBox, "#ffffff");

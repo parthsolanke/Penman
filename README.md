@@ -31,6 +31,8 @@ The Playground lets users experiment with handwriting effects and customize thei
 ### **Cards**
 The Cards section provides tools for creating personalized cards from pre-designed templates.
 
+![Cards Demo](./public/assets/cards.png)
+
 #### **Key Features**
 - Template Library: Access pre-built templates for notes and cards.
 - Custom Backgrounds: Customize templates with your own backgrounds.

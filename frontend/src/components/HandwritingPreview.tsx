@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { ZoomIn, ZoomOut, RefreshCcw, Loader2 } from 'lucide-react'
 
 interface HandwritingPreviewProps {
-  svgPath: string
-  width?: number
-  height?: number
-  onClear?: () => void
-  viewBox?: string
-  isGenerating?: boolean
-  strokeWidth: number
-  strokeColor: string
-  onAbort?: () => void
+  svgPath: string;
+  width?: number;
+  height?: number;
+  onClear?: () => void;
+  viewBox?: string;
+  isGenerating?: boolean;
+  strokeWidth: number;
+  strokeColor: string;
+  onAbort?: () => void;
+  backgroundTemplate?: string;
 }
 
 export default function HandwritingPreview({ 
@@ -22,7 +23,8 @@ export default function HandwritingPreview({
   isGenerating,
   strokeWidth,
   strokeColor,
-  onAbort
+  onAbort,
+  backgroundTemplate,
 }: HandwritingPreviewProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,7 +104,6 @@ export default function HandwritingPreview({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
     
-    e.preventDefault();
     const touch = e.touches[0];
     setPosition({
       x: touch.clientX - dragStart.x,
@@ -129,11 +130,11 @@ export default function HandwritingPreview({
   useEffect(() => {
     const handleMouseLeave = () => setIsDragging(false);
     const container = containerRef.current;
-    
+  
     if (container) {
       container.addEventListener('mouseleave', handleMouseLeave);
     }
-    
+  
     return () => {
       if (container) {
         container.removeEventListener('mouseleave', handleMouseLeave);
@@ -177,7 +178,7 @@ export default function HandwritingPreview({
         </div>
       </div>
 
-      <div 
+      <div
         ref={containerRef}
         className="flex-1 relative bg-white overflow-auto touch-none"
         onMouseDown={handleMouseDown}
@@ -187,13 +188,20 @@ export default function HandwritingPreview({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
-          backgroundImage: `
-            linear-gradient(#e5e7eb 1px, transparent 1px),
-            linear-gradient(90deg, #e5e7eb 1px, transparent 1px),
-            linear-gradient(#f3f4f6 0.5px, transparent 0.5px),
-            linear-gradient(90deg, #f3f4f6 0.5px, transparent 0.5px)
-          `,
-          backgroundSize: '20px 20px, 20px 20px, 10px 10px, 10px 10px',
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          backgroundImage: backgroundTemplate
+            ? `url('${backgroundTemplate}')`
+            : `
+              linear-gradient(#e5e7eb 1px, transparent 1px),
+              linear-gradient(90deg, #e5e7eb 1px, transparent 1px),
+              linear-gradient(#f3f4f6 0.5px, transparent 0.5px),
+              linear-gradient(90deg, #f3f4f6 0.5px, transparent 0.5px)
+            `,
+          backgroundSize: backgroundTemplate ? 'contain' : '20px 20px, 20px 20px, 10px 10px, 10px 10px',
+          backgroundRepeat: backgroundTemplate ? 'no-repeat' : 'repeat',
+          backgroundPosition: backgroundTemplate ? 'center' : undefined,
         }}
       >
         {!svgPath && isGenerating && (
@@ -213,14 +221,14 @@ export default function HandwritingPreview({
             style={{ 
               width: '100%',
               height: '100%',
-              cursor: isDragging ? 'grabbing' : 'grab'
+              cursor: isDragging ? 'grabbing' : 'grab',
             }}
           >
             <g 
               transform={`translate(${position.x}, ${position.y}) scale(${scale})`}
               style={{ 
                 transition: isDragging ? 'none' : 'transform 0.2s ease',
-                transformOrigin: 'center'
+                transformOrigin: 'center',
               }}
             >
               <g transform={`translate(${strokeWidth/2},${strokeWidth/2})`}>
@@ -237,7 +245,7 @@ export default function HandwritingPreview({
                     animationDuration: '0.01s',
                     animationTimingFunction: 'ease',
                     animationFillMode: 'forwards',
-                    animationDelay: '25ms'
+                    animationDelay: '25ms',
                   }}
                 />
               </g>

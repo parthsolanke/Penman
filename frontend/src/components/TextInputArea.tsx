@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Textarea } from "@/components/ui/textarea"
 import GenerateButton from './GenerateButton'
 import { VALID_CHARACTERS } from '@/lib/constants'
@@ -12,6 +12,25 @@ interface TextInputAreaProps {
 
 export default function TextInputArea({ text, onTextChange, onGenerateClick, isGenerating }: TextInputAreaProps) {
   const [invalidChars, setInvalidChars] = useState<{char: string, index: number}[]>([])
+  const [showLimitWarning, setShowLimitWarning] = useState(false)
+  const CHARACTER_LIMIT = 650
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (text.length > CHARACTER_LIMIT * 0.95 || text.length === CHARACTER_LIMIT) {
+      setShowLimitWarning(true);
+      timeoutId = setTimeout(() => {
+        setShowLimitWarning(false);
+      }, 3000);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [text.length]);
 
   const validateText = (input: string) => {
     const invalid = []
@@ -25,10 +44,15 @@ export default function TextInputArea({ text, onTextChange, onGenerateClick, isG
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
-    const invalid = validateText(newText)
-    setInvalidChars(invalid)
-    onTextChange(newText)
+    if (newText.length <= CHARACTER_LIMIT) {
+      const invalid = validateText(newText)
+      setInvalidChars(invalid)
+      onTextChange(newText)
+    }
   }
+
+  const isNearLimit = text.length > CHARACTER_LIMIT * 0.95
+  const isAtLimit = text.length === CHARACTER_LIMIT
 
   return (
     <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
@@ -37,8 +61,12 @@ export default function TextInputArea({ text, onTextChange, onGenerateClick, isG
           <h2 className="font-semibold text-base">Enter Text</h2>
           <p className="text-sm text-gray-500 mt-0.5">Type or paste your text here</p>
         </div>
-        <div className="text-sm text-gray-500">
-          {text.length} characters
+        <div className={`text-sm ${
+          isAtLimit ? 'text-red-600 font-medium' : 
+          isNearLimit ? 'text-yellow-600' : 
+          'text-gray-500'
+        }`}>
+          {text.length}/{CHARACTER_LIMIT} characters
         </div>
       </div>
       
@@ -63,10 +91,19 @@ export default function TextInputArea({ text, onTextChange, onGenerateClick, isG
           </div>
         )}
 
+        {showLimitWarning && isAtLimit && (
+          <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600 transition-opacity duration-300">
+            <p className="font-medium">
+              Character limit reached (maximum {CHARACTER_LIMIT} characters)
+            </p>
+          </div>
+        )}
+
         <Textarea
           id="text-input"
           value={text}
           onChange={handleTextChange}
+          maxLength={CHARACTER_LIMIT}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               if (!e.shiftKey) {
@@ -76,7 +113,8 @@ export default function TextInputArea({ text, onTextChange, onGenerateClick, isG
             }
           }}
           className={`flex-1 resize-none p-4 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none text-lg bg-transparent
-            ${invalidChars.length > 0 ? 'border-red-500' : ''}`}
+            ${invalidChars.length > 0 ? 'border-red-500' : ''}
+            ${isAtLimit ? 'border-red-300' : ''}`}
         />
         
         <div className="p-4 border-t bg-gray-50 rounded-b-lg">

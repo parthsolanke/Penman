@@ -38,19 +38,23 @@ const WarningTooltip = ({ children, message }: { children: React.ReactNode, mess
 )
 
 type SettingsPanelProps = {
+  page: "playground" | "cards";
   svgPath: string;
   viewBox: string | undefined;
   width: number;
   height: number;
   isGenerating: boolean;
+  svgMarkupFromCards?: string;
 };
 
 export default function SettingsPanel({
+  page,
   svgPath,
   viewBox,
   width,
   height,
   isGenerating,
+  svgMarkupFromCards,
 }: SettingsPanelProps) {
   const {
     font,
@@ -199,6 +203,7 @@ export default function SettingsPanel({
               </WarningTooltip>
             ) : (
               <ExportButton
+                page = {page}
                 svgPath={svgPath}
                 strokeColor={strokeColor} 
                 strokeWidth={strokeWidth} 
@@ -206,6 +211,7 @@ export default function SettingsPanel({
                 width={width} 
                 height={height} 
                 filename="penman-export" 
+                svgMarkupFromCards={svgMarkupFromCards}
               />
             )}
           </div>

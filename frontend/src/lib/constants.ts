@@ -15,9 +15,7 @@ export const cardTemplates = [
 ]
 
 export const cardSizes = {
-  'A6': { width: 400, height: 600 },
   'A5': { width: 600, height: 800 },
-  'A4': { width: 800, height: 1200 },
   'Square': { width: 800, height: 800 },
   'Pano': { width: 1200, height: 600 }
 }

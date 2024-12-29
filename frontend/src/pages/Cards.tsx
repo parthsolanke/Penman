@@ -66,8 +66,8 @@ export default function Cards() {
         (data) => {
           setViewBox(data.viewBox);
           setDimensions({
-            width: data.width || cardSizes[selectedSize].width,
-            height: data.height || cardSizes[selectedSize].height
+            width: cardSizes[selectedSize].width,
+            height: cardSizes[selectedSize].height
           });
         },
         (data) => {
@@ -93,16 +93,76 @@ export default function Cards() {
     setDimensions(cardSizes[selectedSize]);
   }, [handleAbort, selectedSize]);
 
+  const constructSvgMarkup = (
+    svgPath: string,
+    viewBox: string | undefined,
+    dimensions: { width: number; height: number },
+    strokeWidth: number,
+    strokeColor: string,
+    backgroundTemplate?: string
+  ) => {
+    const background = backgroundTemplate
+      ? `<g><image 
+           href="${backgroundTemplate}" 
+           x="0" 
+           y="0" 
+           width="${dimensions.width}" 
+           height="${dimensions.height}" 
+           preserveAspectRatio="xMidYMid meet"
+         /></g>`
+      : `
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f3f4f6" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+      `;
+  
+    return `
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        width="${dimensions.width}"
+        height="${dimensions.height}"
+        viewBox="${viewBox || `0 0 ${dimensions.width} ${dimensions.height}`}"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        ${background}
+        <g transform="translate(${strokeWidth / 2},${strokeWidth / 2})">
+          <path
+            d="${svgPath}"
+            fill="none"
+            stroke="${strokeColor}"
+            stroke-width="${strokeWidth}"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </g>
+      </svg>
+    `;
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
       <div className="flex-1 flex flex-col">
-        <SettingsPanel
+      <SettingsPanel
+          page="cards"
           svgPath={svgPath}
           viewBox={viewBox}
           width={dimensions.width}
           height={dimensions.height}
           isGenerating={isGenerating}
+          svgMarkupFromCards={svgPath ? constructSvgMarkup(
+            svgPath,
+            viewBox,
+            dimensions,
+            strokeWidth,
+            strokeColor,
+            resolvedTemplate
+          ) : undefined}
         />
         <TemplatePanel 
           selectedSize={selectedSize}

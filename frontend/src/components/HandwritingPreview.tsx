@@ -26,7 +26,6 @@ export default function HandwritingPreview({
   onAbort,
   backgroundTemplate,
 }: HandwritingPreviewProps) {
-  console.log("Background Template:", backgroundTemplate);
   const pathRef = useRef<SVGPathElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -105,7 +104,6 @@ export default function HandwritingPreview({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
     
-    e.preventDefault();
     const touch = e.touches[0];
     setPosition({
       x: touch.clientX - dragStart.x,
@@ -132,11 +130,11 @@ export default function HandwritingPreview({
   useEffect(() => {
     const handleMouseLeave = () => setIsDragging(false);
     const container = containerRef.current;
-    
+  
     if (container) {
       container.addEventListener('mouseleave', handleMouseLeave);
     }
-    
+  
     return () => {
       if (container) {
         container.removeEventListener('mouseleave', handleMouseLeave);
@@ -190,6 +188,9 @@ export default function HandwritingPreview({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
           backgroundImage: backgroundTemplate
             ? `url('${backgroundTemplate}')`
             : `

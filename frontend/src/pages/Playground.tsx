@@ -138,6 +138,7 @@ export default function Playground() {
       <Header />
       <div className="flex-1 flex flex-col">
       <SettingsPanel
+        page = "playground"
         svgPath={svgPath}
         viewBox={viewBox}
         width={dimensions.width}

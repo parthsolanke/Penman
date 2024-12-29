@@ -14,7 +14,7 @@ const ScrollContainer = styled.div`
   }
 `;
 
-const sizes = ['A6', 'A5', 'A4', 'Square', 'Pano'] as const
+const sizes = ['A5', 'Square', 'Pano'] as const
 
 interface TemplatePanelProps {
   selectedSize: keyof typeof cardSizes;

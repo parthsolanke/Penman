@@ -2,7 +2,7 @@
 
 ![Home](./public/assets/home.png)
 
-**Penman** is a handwriting generator app that brings a personalized, authentic touch to digital content. It allows users to experiment with handwriting effects, create personalized cards from templates, and export their creations in various formats. Uses a custom Server-Sent Events (SSE) implementation. The SSE stream allows real-time handwriting generation by sending incremental updates to the frontend. This enables a fluid, interactive user experience as the handwriting is rendered.
+**Penman** is a handwriting generator app that brings a personalized, authentic touch to digital content. It allows users to experiment with handwriting effects, create personalized cards from templates, and export their creations in various formats. Uses a custom Server-Sent Events (SSE) implementation. The SSE stream allows real-time handwriting generation by sending incremental updates to the frontend. This enables a fluid user experience as the handwriting is rendered.
 
 ---
 
